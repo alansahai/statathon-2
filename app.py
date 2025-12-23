@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from werkzeug.utils import secure_filename
 import pandas as pd
 import numpy as np
-from xhtml2pdf import pisa
+# from xhtml2pdf import pisa
 
 # Import Engines
 from statistics_engine import StatisticsEngine, SchemaValidator
@@ -279,26 +279,37 @@ def generate_visuals():
 @app.route('/download-pdf', methods=['GET'])
 @login_required
 def download_pdf():
+    """
+    Vercel-Safe PDF Handler:
+    Since server-side PDF generation requires heavy system libraries unavailable on Vercel,
+    we serve the HTML report with a script that auto-triggers the browser's Print dialog.
+    """
     meta = session.get('metadata', {})
     stats = session.get('last_results', [])
     charts = session.get('charts', {})
     ai_summary = session.get('ai_summary', '')
     workflow_log = session.get('workflow_log', [])
     filename = meta.get('filename', 'report')
-    
+
+    # Generate the standard HTML report
     html_content = ReportEngine.generate_html_report(filename, stats, charts, meta, ai_summary)
-    
+
+    # Add Workflow Log
     log_html = "<h2>3. WORKFLOW LOG</h2><ul style='font-size:12px; color:#475569;'>" + \
                "".join([f"<li>{l}</li>" for l in workflow_log]) + "</ul>"
     html_content = html_content.replace("</body>", f"{log_html}</body>")
-    
-    pdf_buffer = io.BytesIO()
-    pisa_status = pisa.CreatePDF(io.BytesIO(html_content.encode('utf-8')), dest=pdf_buffer)
-    
-    if pisa_status.err: return "PDF Generation Error", 500
-    
-    pdf_buffer.seek(0)
-    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'Report_{filename}.pdf')
+
+    # Inject Auto-Print Script
+    # This forces the browser to open the "Save as PDF" dialog immediately
+    print_script = "<script>window.onload = function() { window.print(); }</script>"
+    html_content = html_content.replace("</body>", f"{print_script}</body>")
+
+    return Response(
+        html_content,
+        mimetype="text/html",
+        # We remove 'attachment' so it opens in the browser to trigger the print dialog
+        headers={"Content-disposition": f"inline; filename=Report_{filename}.html"}
+    )
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)
