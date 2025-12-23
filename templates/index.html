@@ -159,17 +159,7 @@
             background: var(--card-bg);
         }
 
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.2);
-        }
-
-        /* INPUTS & SELECTS - DARK MODE FIX */
+        /* INPUTS & SELECTS */
         input,
         select {
             background: var(--input-bg);
@@ -188,29 +178,31 @@
             border-color: var(--accent);
         }
 
-        /* Force options to have background color to prevent white-on-white issues */
         select option {
             background-color: var(--bg-body);
             color: var(--text-main);
             padding: 10px;
         }
 
-        /* INGESTION ZONE */
+        /* INGESTION ZONE (UPDATED) */
         .upload-zone {
             border: 2px dashed var(--card-border);
             border-radius: 16px;
-            padding: 30px;
+            padding: 40px 30px;
             text-align: center;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background 0.2s;
             background: var(--input-bg);
+            cursor: pointer;
         }
 
-        .upload-zone:hover {
+        .upload-zone:hover,
+        .upload-zone.dragover {
             border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
         }
 
         .pending-list {
-            margin-top: 15px;
+            margin-top: 20px;
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -255,17 +247,6 @@
             background: var(--input-bg);
         }
 
-        .tag {
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text-muted);
-            margin-right: 4px;
-            display: inline-block;
-        }
-
         /* TABS */
         .tabs {
             display: flex;
@@ -304,6 +285,7 @@
             display: block;
         }
 
+        /* ANIMATIONS & LAYOUTS */
         @keyframes fadeUp {
             from {
                 opacity: 0;
@@ -389,14 +371,17 @@
                     Selection</button>
             </div>
 
-            <div class="upload-zone">
+            <div class="upload-zone" id="drop-zone">
                 <i data-lucide="folder-open"
                     style="width:40px; height:40px; color:var(--text-muted); margin-bottom:10px;"></i>
                 <div style="margin-bottom:15px; color:var(--text-muted);">
-                    Select files from different folders to build your batch.<br>Files are added sequentially.
+                    Drag & Drop files here or click to browse.<br>
+                    <span style="font-size:0.8rem; color:var(--accent);">Supports CSV, Excel, SPSS (.sav), SAS
+                        (.sas7bdat)</span>
                 </div>
                 <div style="display:flex; justify-content:center; gap:10px;">
-                    <input type="file" id="file-input" multiple style="display:none;" onchange="handleFileSelect(this)">
+                    <input type="file" id="file-input" multiple accept=".csv,.xlsx,.xls,.sav,.sas7bdat"
+                        style="display:none;" onchange="handleFileSelect(this)">
                     <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
                         <i data-lucide="plus"></i> Add Files
                     </button>
@@ -417,9 +402,9 @@
                         <tr>
                             <th>Filename</th>
                             <th>Dimensions</th>
-                            <th style="color:var(--warning)">Missing Values</th>
-                            <th>Preview Headers (First 3)</th>
-                            <th>Status</th>
+                            <th style="color:var(--warning)">Missing</th>
+                            <th style="color:var(--error)">Duplicates</th>
+                            <th>Headers</th>
                         </tr>
                     </thead>
                     <tbody id="file-list-body"></tbody>
@@ -464,6 +449,7 @@
 
             <div class="tabs">
                 <button class="tab-btn active" onclick="switchTab('clean')">Clean & Prepare</button>
+                <button class="tab-btn" onclick="switchTab('pivot')">Pivot Table</button>
                 <button class="tab-btn" onclick="switchTab('estimate')">Estimation</button>
                 <button class="tab-btn" onclick="switchTab('visualize')" id="tab-viz" disabled>Insights &
                     Report</button>
@@ -507,6 +493,40 @@
                     <div id="clean-logs"
                         style="margin-top:20px; font-family:monospace; font-size:0.85rem; color:var(--text-muted); background:var(--input-bg); padding:15px; border-radius:8px; display:none;">
                     </div>
+                </div>
+            </div>
+
+            <div id="pivot" class="tab-content">
+                <div class="card">
+                    <h3>Pivot & Group Data</h3>
+                    <div class="grid-3">
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; color:var(--text-muted);">Group By
+                                (Rows)</label>
+                            <select id="pivot-index"></select>
+                        </div>
+                        <div>
+                            <label style="font-weight:600; font-size:0.8rem; color:var(--text-muted);">Summarize
+                                (Values)</label>
+                            <select id="pivot-values"></select>
+                        </div>
+                        <div>
+                            <label
+                                style="font-weight:600; font-size:0.8rem; color:var(--text-muted);">Aggregation</label>
+                            <select id="pivot-agg">
+                                <option value="mean">Average</option>
+                                <option value="sum">Sum</option>
+                                <option value="count">Count</option>
+                                <option value="max">Max</option>
+                                <option value="min">Min</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button class="btn btn-primary" onclick="runPivot()">Generate Pivot Table</button>
+                    </div>
+
+                    <div id="pivot-results" style="margin-top:20px; overflow-x:auto;"></div>
                 </div>
             </div>
 
@@ -592,9 +612,9 @@
     <script>
         lucide.createIcons();
         let uploadedFilesCache = {};
-        let pendingFiles = []; // Stores files before upload
+        let pendingFiles = [];
 
-        // THEME
+        // THEME LOGIC
         function toggleTheme() {
             const html = document.documentElement;
             const current = html.getAttribute('data-theme');
@@ -615,15 +635,52 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
         updateThemeIcon(savedTheme);
 
-        // FILE HANDLING (SEQUENTIAL UPLOAD LOGIC)
+        // --- DRAG & DROP & FILE HANDLING ---
+        const dropZone = document.getElementById('drop-zone');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) { dropZone.classList.add('dragover'); }
+        function unhighlight(e) { dropZone.classList.remove('dragover'); }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
         function handleFileSelect(input) {
-            const newFiles = Array.from(input.files);
+            handleFiles(input.files);
+            input.value = ''; // Reset input
+        }
 
-            // Add to global array to support sequential adding
-            newFiles.forEach(f => pendingFiles.push(f));
-
-            // Reset input so same file can be selected again if needed
-            input.value = '';
+        function handleFiles(files) {
+            if (pendingFiles.length + files.length > 5) {
+                alert("Maximum 5 files allowed per batch.");
+                return;
+            }
+            Array.from(files).forEach(f => {
+                // Filter out likely junk files
+                if (f.name.indexOf('.') === -1) return;
+                pendingFiles.push(f);
+            });
             updatePendingUI();
         }
 
@@ -638,7 +695,7 @@
             pendingFiles.forEach((f, index) => {
                 const item = document.createElement('div');
                 item.className = 'pending-file';
-                item.innerHTML = `<i data-lucide="file" style="width:14px;"></i> ${f.name} <span onclick="removePending(${index})" style="cursor:pointer; color:var(--text-muted); margin-left:5px;">&times;</span>`;
+                item.innerHTML = `<i data-lucide="file" style="width:14px;"></i> ${f.name} <span onclick="removePending(${index})" style="cursor:pointer; color:var(--error); margin-left:5px;">&times;</span>`;
                 list.appendChild(item);
             });
             lucide.createIcons();
@@ -658,35 +715,34 @@
             const res = await fetch('/upload', { method: 'POST', body: formData });
             const data = await res.json();
 
-            // Clear pending after successful upload
+            if (data.error) return alert(data.error);
+
+            // Clear pending and update UI
             pendingFiles = [];
             updatePendingUI();
-
-            // Render the File Dashboard Table
             updateFileDashboard(data.file_details);
         }
 
         function updateFileDashboard(files) {
             document.getElementById('file-dashboard').style.display = 'block';
             document.getElementById('workspace').style.display = 'block';
+            document.getElementById('ingestion-card').style.display = 'none'; // Auto hide ingestion
 
             const tbody = document.getElementById('file-list-body');
             const activeSelect = document.getElementById('active-file-select');
 
-            // Keep existing options/rows or clear? Let's merge or just append.
-            // For simplicity, we assume the backend returns the "just uploaded" batch.
-            // But to persist the list, we should check cache.
-
             files.forEach(f => {
                 uploadedFilesCache[f.filename] = f;
 
-                // Add to Table
+                // Add to Table (With Duplicates & Headers view)
                 const row = `<tr>
                     <td><b>${f.filename}</b></td>
                     <td>${f.row_count} rows x ${f.col_count} cols</td>
-                    <td style="color:${f.missing_count > 0 ? 'var(--warning)' : 'var(--text-muted)'}">${f.missing_count} nulls</td>
-                    <td>${f.headers.slice(0, 3).map(h => `<span class="tag">${h}</span>`).join('')}...</td>
-                    <td><span style="color:var(--success)">Ready</span></td>
+                    <td style="color:${f.missing_count > 0 ? 'var(--warning)' : 'inherit'}">${f.missing_count} nulls</td>
+                    <td style="color:${f.duplicate_rows > 0 ? 'var(--error)' : 'inherit'}">${f.duplicate_rows || 0} Duplicates</td>
+                    <td>
+                        <button class="btn-outline" style="padding:2px 8px; font-size:0.75rem;" onclick="alert('${f.headers.join('\\n')}')">View All</button>
+                    </td>
                 </tr>`;
                 tbody.innerHTML += row;
 
@@ -704,14 +760,14 @@
             }
         }
 
-        // TABS
+        // TABS LOGIC
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
 
             const btns = document.querySelectorAll('.tab-btn');
-            const map = { 'clean': 0, 'estimate': 1, 'visualize': 2 };
+            const map = { 'clean': 0, 'pivot': 1, 'estimate': 2, 'visualize': 3 };
             btns[map[tabId]].classList.add('active');
         }
 
@@ -720,17 +776,20 @@
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
 
-        // WORKFLOW API
+        // --- WORKFLOW API & LOGIC ---
+
         async function switchActiveFile() {
             const filename = document.getElementById('active-file-select').value;
             if (!filename) return;
 
+            // Fetch details for numeric columns (Estimation) and header info
             const res = await fetch('/get-file-details', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename })
             });
             const data = await res.json();
 
+            // Populate Estimation Dropdowns
             const weightSelect = document.getElementById('weight-col-select');
             const targetContainer = document.getElementById('target-cols-container');
             const schemaSelect = document.getElementById('schema-col-select');
@@ -750,6 +809,16 @@
             data.headers.forEach(col => {
                 schemaSelect.innerHTML += `<option value="${col}">${col}</option>`;
             });
+
+            // Populate Pivot Dropdowns
+            const pivotIndex = document.getElementById('pivot-index');
+            const pivotVal = document.getElementById('pivot-values');
+            pivotIndex.innerHTML = ''; pivotVal.innerHTML = '';
+
+            data.headers.forEach(h => {
+                pivotIndex.innerHTML += `<option value="${h}">${h}</option>`;
+                pivotVal.innerHTML += `<option value="${h}">${h}</option>`;
+            });
         }
 
         async function applyMapping() {
@@ -763,7 +832,7 @@
             const data = await res.json();
             if (data.status === 'success') {
                 document.getElementById('schema-feedback').innerText = `✓ Mapped '${oldName}' → '${newName}'`;
-                switchActiveFile();
+                switchActiveFile(); // Refresh columns
             }
         }
 
@@ -784,6 +853,33 @@
                 logs.style.display = 'block';
                 logs.innerHTML = '<strong><i data-lucide="terminal-square" style="width:14px; vertical-align:middle;"></i> Execution Log:</strong><br>' + data.logs.join('<br>');
                 lucide.createIcons();
+            }
+        }
+
+        async function runPivot() {
+            const filename = document.getElementById('active-file-select').value;
+            const index = document.getElementById('pivot-index').value;
+            const val = document.getElementById('pivot-values').value;
+            const agg = document.getElementById('pivot-agg').value;
+
+            // Note: Ensure /pivot-data route exists in backend
+            const res = await fetch('/pivot-data', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, index, values: val, agg })
+            });
+            const data = await res.json();
+
+            if (data.pivot_data) {
+                // Render Table
+                const headers = Object.keys(data.pivot_data[0]);
+                let table = `<table class="data-table"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+                data.pivot_data.forEach(row => {
+                    table += `<tr>${headers.map(h => `<td>${row[h]}</td>`).join('')}</tr>`;
+                });
+                table += '</tbody></table>';
+                document.getElementById('pivot-results').innerHTML = table;
+            } else if (data.error) {
+                document.getElementById('pivot-results').innerHTML = `<span style="color:var(--error)">${data.error}</span>`;
             }
         }
 

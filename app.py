@@ -10,9 +10,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from werkzeug.utils import secure_filename
 import pandas as pd
 import numpy as np
-# from xhtml2pdf import pisa
 
-# Import Engines
+# Import Engines (Ensure these files exist in your folder)
 from statistics_engine import StatisticsEngine, SchemaValidator
 from report_engine import ReportEngine
 from cleaning_engine import CleaningEngine
@@ -22,35 +21,29 @@ import user_manager
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURATION (UPDATED FOR VERCEL) ---
+# --- CONFIGURATION ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+IS_VERCEL = os.environ.get('VERCEL', False)
 
-# Vercel sets the 'VERCEL' environment variable to '1'
-if os.environ.get('VERCEL'):
-    # Vercel filesystem is read-only except for /tmp
+if IS_VERCEL:
     UPLOAD_FOLDER = '/tmp/temp_uploads'
     SESSION_FILE_DIR = '/tmp/flask_session'
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'statflow-production-secret')
 else:
-    # Local development configuration
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'temp_uploads')
     SESSION_FILE_DIR = os.path.join(BASE_DIR, 'flask_session')
-    app.config['SECRET_KEY'] = 'statflow-secret-key'
+    app.config['SECRET_KEY'] = 'dev-secret-key'
 
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_DIR'] = SESSION_FILE_DIR
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# Optional: Ensure session cookies work correctly across serverless invocations
 app.config['SESSION_PERMANENT'] = False 
 app.config['SESSION_USE_SIGNER'] = True
 
-# Ensure directories exist
 for d in [UPLOAD_FOLDER, SESSION_FILE_DIR]:
-    if not os.path.exists(d): 
-        try:
-            os.makedirs(d)
-        except OSError:
-            pass # Handle potential race conditions or permissions in strict envs
+    if not os.path.exists(d):
+        try: os.makedirs(d)
+        except OSError: pass
 
 Session(app)
 user_manager.init_db()
@@ -63,7 +56,6 @@ login_manager.init_app(app)
 def load_user(user_id): return user_manager.get_user(user_id)
 
 def cleanup_temp_files():
-    # Note: On Vercel, background threads may be frozen/killed between requests
     if not os.path.exists(UPLOAD_FOLDER): return
     now = time.time()
     cutoff = now - 3600
@@ -85,6 +77,27 @@ def get_df_from_session(filename):
 def save_df_to_session(filename, df):
     session['files'][filename] = df.to_json()
     session.modified = True
+
+# --- HELPER: INTEGRITY CHECK ---
+def check_duplicates(df):
+    """Finds repeated rows and columns."""
+    # 1. Repeated Rows
+    dup_rows = df[df.duplicated(keep=False)]
+    dup_row_indices = dup_rows.index.tolist()
+    
+    # 2. Repeated Columns (by content)
+    dup_cols = []
+    # Transpose to check columns as rows, or iterate
+    # A simple check is identical column names (handled by pandas usually by renaming)
+    # But checking identical content:
+    for i in range(len(df.columns)):
+        col_1 = df.iloc[:, i]
+        for j in range(i + 1, len(df.columns)):
+            col_2 = df.iloc[:, j]
+            if col_1.equals(col_2):
+                dup_cols.append(f"{df.columns[i]} == {df.columns[j]}")
+                
+    return dup_row_indices, dup_cols
 
 # --- ROUTES ---
 
@@ -117,6 +130,10 @@ def index():
 def upload_file():
     if 'files' not in request.files: return jsonify({'error': 'No files'}), 400
     files = request.files.getlist('files')
+    
+    if len(files) > 5:
+        return jsonify({'error': 'Max 5 files allowed'}), 400
+
     if 'files' not in session: session['files'] = {}
     if 'workflow_log' not in session: session['workflow_log'] = []
     
@@ -125,29 +142,66 @@ def upload_file():
         if file.filename == '': continue
         try:
             filename = secure_filename(file.filename)
+            # Basic Folder Check (files usually have extensions, folders don't or are rejected by read)
+            if '.' not in filename: continue 
+
             buffer = io.BytesIO(file.read())
-            if filename.endswith(('.xls', '.xlsx')): df = pd.read_excel(buffer)
-            else: df = pd.read_csv(buffer)
             
-            # Save to session
+            # --- NEW: SPSS & SAS SUPPORT ---
+            if filename.endswith(('.xls', '.xlsx')):
+                df = pd.read_excel(buffer)
+            elif filename.endswith('.csv'):
+                df = pd.read_csv(buffer)
+            elif filename.endswith('.sav'):
+                df, meta = pd.read_spss(buffer, metadata=True) # Requires pyreadstat
+            elif filename.endswith('.sas7bdat'):
+                df = pd.read_sas(buffer) # Pandas built-in or pyreadstat
+            else:
+                continue # Skip unsupported
+            
             session['files'][filename] = df.to_json()
             session['workflow_log'].append(f"{datetime.now().strftime('%H:%M:%S')}: Uploaded {filename}")
             
-            # Calculate Metadata including Missing Values
             missing_count = int(df.isnull().sum().sum())
+            dup_rows, dup_cols = check_duplicates(df)
             
             summary.append({
                 'filename': filename, 
                 'row_count': len(df),
                 'col_count': len(df.columns),
-                'missing_count': missing_count, # <--- NEW FIELD
+                'missing_count': missing_count,
+                'duplicate_rows': len(dup_rows),
+                'duplicate_cols': dup_cols,
                 'numeric_columns': df.select_dtypes(include=[np.number]).columns.tolist(),
                 'headers': list(df.columns)
             })
-        except Exception as e: print(e)
+        except Exception as e: print(f"Error loading {file.filename}: {e}")
     
     session.modified = True
     return jsonify({'status': 'success', 'file_details': summary, 'files_uploaded': len(summary)})
+
+@app.route('/pivot-data', methods=['POST'])
+@login_required
+def pivot_data():
+    """
+    NEW: Pivot Table functionality.
+    """
+    data = request.get_json()
+    filename = data.get('filename')
+    index_col = data.get('index')
+    values_col = data.get('values')
+    agg_func = data.get('agg', 'mean') # mean, sum, count
+    
+    df = get_df_from_session(filename)
+    if df is None: return jsonify({'error': 'File not found'}), 404
+    
+    try:
+        pivot = pd.pivot_table(df, index=index_col, values=values_col, aggfunc=agg_func)
+        # Convert to dict for JSON
+        pivot_data = pivot.reset_index().to_dict(orient='records')
+        return jsonify({'status': 'success', 'pivot_data': pivot_data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/apply-schema', methods=['POST'])
 @login_required
