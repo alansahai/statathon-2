@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatFlow AI | Enterprise</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --input-bg: #f1f5f9;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            margin: 0;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0 30px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--card-bg);
+            color: var(--accent);
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--card-bg);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* INPUTS & SELECTS - DARK MODE FIX */
+        input,
+        select {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Force options to have background color to prevent white-on-white issues */
+        select option {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            padding: 10px;
+        }
+
+        /* INGESTION ZONE */
+        .upload-zone {
+            border: 2px dashed var(--card-border);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            transition: border-color 0.2s;
+            background: var(--input-bg);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+        }
+
+        .pending-list {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .pending-file {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* DATA TABLE */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--card-border);
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .data-table tr:hover td {
+            background: var(--input-bg);
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            margin-right: 4px;
+            display: inline-block;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid var(--card-border);
+            gap: 5px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeUp 0.3s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .viz-box {
+            background: var(--input-bg);
+            border-radius: 12px;
+            min-height: 350px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--card-border);
+            overflow: hidden;
+        }
+
+        .schema-panel {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <i data-lucide="database" style="color:var(--accent);"></i>
+                <span>StatFlow<span style="color:var(--accent)">AI</span></span>
+            </div>
+            <div class="user-controls">
+                <button class="btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+                    <i data-lucide="sun" id="theme-icon"></i>
+                </button>
+                <div class="user-badge">
+                    <i data-lucide="user" style="width:14px;"></i> {{ username }}
+                </div>
+                <a href="/logout" class="btn-icon" style="color:#ef4444;" title="Logout">
+                    <i data-lucide="log-out"></i>
+                </a>
+            </div>
+        </header>
+
+        <div class="card" id="ingestion-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3><i data-lucide="upload-cloud" style="width:18px; display:inline-block; margin-right:8px;"></i> Data
+                    Ingestion</h3>
+                <button class="btn btn-outline" onclick="clearPending()" style="font-size:0.8rem;">Clear
+                    Selection</button>
+            </div>
+
+            <div class="upload-zone">
+                <i data-lucide="folder-open"
+                    style="width:40px; height:40px; color:var(--text-muted); margin-bottom:10px;"></i>
+                <div style="margin-bottom:15px; color:var(--text-muted);">
+                    Select files from different folders to build your batch.<br>Files are added sequentially.
+                </div>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <input type="file" id="file-input" multiple style="display:none;" onchange="handleFileSelect(this)">
+                    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                        <i data-lucide="plus"></i> Add Files
+                    </button>
+                    <button class="btn btn-outline" onclick="uploadBatch()">
+                        <i data-lucide="upload"></i> Upload Batch
+                    </button>
+                </div>
+                <div id="pending-list" class="pending-list"></div>
+            </div>
+        </div>
+
+        <div id="file-dashboard" class="card" style="display:none;">
+            <h3><i data-lucide="table-2" style="width:18px; display:inline-block; margin-right:8px;"></i> Dataset
+                Overview</h3>
+            <div style="overflow-x:auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Dimensions</th>
+                            <th style="color:var(--warning)">Missing Values</th>
+                            <th>Preview Headers (First 3)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="file-list-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="workspace" style="display:none;">
+
+            <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px;">
+                <div style="flex-grow:1; max-width:400px;">
+                    <label
+                        style="font-size:0.75rem; color:var(--text-muted); font-weight:700; letter-spacing:0.5px;">ACTIVE
+                        DATASET FOR ANALYSIS</label>
+                    <select id="active-file-select" onchange="switchActiveFile()" style="margin-top:5px;"></select>
+                </div>
+                <button class="btn btn-outline" onclick="toggleSchema()">
+                    <i data-lucide="settings-2"></i> Map Schema
+                </button>
+            </div>
+
+            <div id="schema-panel" class="schema-panel" style="display:none;">
+                <h4 style="margin:0 0 15px 0; color:var(--warning); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="table-properties" style="width:16px;"></i> Schema Configuration
+                </h4>
+                <div style="display:flex; gap:10px; align-items:flex-end;">
+                    <div style="flex:1;">
+                        <label style="font-size:0.8rem; color:var(--text-muted);">Original Column</label>
+                        <select id="schema-col-select">
+                            <option>Select Column...</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; align-items:center; padding-bottom:12px; color:var(--text-muted);">→</div>
+                    <div style="flex:1;">
+                        <label style="font-size:0.8rem; color:var(--text-muted);">New Standard Name</label>
+                        <input type="text" id="schema-new-name" placeholder="e.g. Age_Years">
+                    </div>
+                    <button class="btn btn-primary" onclick="applyMapping()">Apply Mapping</button>
+                </div>
+                <div id="schema-feedback" style="margin-top:10px; font-size:0.8rem; color:var(--success);"></div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('clean')">Clean & Prepare</button>
+                <button class="tab-btn" onclick="switchTab('estimate')">Estimation</button>
+                <button class="tab-btn" onclick="switchTab('visualize')" id="tab-viz" disabled>Insights &
+                    Report</button>
+            </div>
+
+            <div id="clean" class="tab-content active">
+                <div class="card">
+                    <div class="grid-2">
+                        <div>
+                            <label style="font-weight:600; margin-bottom:8px; display:block;">Missing Value
+                                Imputation</label>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Select how to
+                                handle null values in numeric columns.</p>
+                            <select id="impute-method">
+                                <option value="none">No Action</option>
+                                <option value="mean">Mean Imputation</option>
+                                <option value="median">Median Imputation</option>
+                                <option value="drop">Drop Rows</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:600; margin-bottom:8px; display:block;">Advanced Cleaning</label>
+                            <div
+                                style="background:var(--input-bg); padding:15px; border-radius:10px; border:1px solid var(--card-border);">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                                    <input type="checkbox" id="remove-outliers" style="width:18px; height:18px;">
+                                    <label for="remove-outliers">Remove Outliers (IQR Method)</label>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="apply-rules" style="width:18px; height:18px;">
+                                    <label for="apply-rules">Apply Logic Rules (Age > 0, etc.)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:25px; text-align:right;">
+                        <button class="btn btn-primary" onclick="runCleaning()">
+                            <i data-lucide="sparkles"></i> Run Cleaning Pipeline
+                        </button>
+                    </div>
+                    <div id="clean-logs"
+                        style="margin-top:20px; font-family:monospace; font-size:0.85rem; color:var(--text-muted); background:var(--input-bg); padding:15px; border-radius:8px; display:none;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="estimate" class="tab-content">
+                <div class="card">
+                    <div class="grid-2">
+                        <div>
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Survey Weight
+                                Column</label>
+                            <select id="weight-col-select"></select>
+                        </div>
+                        <div>
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Population Control
+                                Total</label>
+                            <input type="number" id="pop-total-input" placeholder="Optional (e.g. 1,000,000)">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:20px;">
+                        <label style="font-weight:600; display:block; margin-bottom:10px;">Target Variables</label>
+                        <div id="target-cols-container" class="grid-3"
+                            style="max-height:150px; overflow-y:auto; padding:10px; background:var(--input-bg); border-radius:10px; border:1px solid var(--card-border);">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:25px; text-align:right;">
+                        <button class="btn btn-primary" onclick="runEstimation()">
+                            <i data-lucide="calculator"></i> Calculate Estimates
+                        </button>
+                    </div>
+                </div>
+
+                <div id="results-area" class="card" style="display:none;">
+                    <h3>Estimation Results</h3>
+                    <div style="overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Variable</th>
+                                    <th>Mean</th>
+                                    <th>Std. Error</th>
+                                    <th style="color:var(--accent)">Margin of Error</th>
+                                    <th>95% CI</th>
+                                    <th>Pop. Est</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="visualize" class="tab-content">
+                <div class="card"
+                    style="display:flex; justify-content:space-between; align-items:center; padding:15px;">
+                    <h3 style="margin:0;">Analysis Dashboard</h3>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-outline" onclick="generateVisuals()"><i data-lucide="refresh-cw"></i>
+                            Refresh</button>
+                        <button class="btn btn-primary" onclick="window.location.href='/download-pdf'"><i
+                                data-lucide="file-down"></i> Download Report</button>
+                    </div>
+                </div>
+
+                <div id="ai-summary-display" class="card"
+                    style="background:rgba(59, 130, 246, 0.05); border-color:rgba(59, 130, 246, 0.2); display:none;">
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4 style="margin-top:0; color:var(--text-muted);">Distribution</h4>
+                        <div id="chart-dist" class="viz-box">Chart will load here...</div>
+                    </div>
+                    <div class="card">
+                        <h4 style="margin-top:0; color:var(--text-muted);">Outlier Analysis</h4>
+                        <div id="chart-box" class="viz-box">Chart will load here...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let uploadedFilesCache = {};
+        let pendingFiles = []; // Stores files before upload
+
+        // THEME
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            if (theme === 'light') icon.setAttribute('data-lucide', 'moon');
+            else icon.setAttribute('data-lucide', 'sun');
+            lucide.createIcons();
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+
+        // FILE HANDLING (SEQUENTIAL UPLOAD LOGIC)
+        function handleFileSelect(input) {
+            const newFiles = Array.from(input.files);
+
+            // Add to global array to support sequential adding
+            newFiles.forEach(f => pendingFiles.push(f));
+
+            // Reset input so same file can be selected again if needed
+            input.value = '';
+            updatePendingUI();
+        }
+
+        function clearPending() {
+            pendingFiles = [];
+            updatePendingUI();
+        }
+
+        function updatePendingUI() {
+            const list = document.getElementById('pending-list');
+            list.innerHTML = '';
+            pendingFiles.forEach((f, index) => {
+                const item = document.createElement('div');
+                item.className = 'pending-file';
+                item.innerHTML = `<i data-lucide="file" style="width:14px;"></i> ${f.name} <span onclick="removePending(${index})" style="cursor:pointer; color:var(--text-muted); margin-left:5px;">&times;</span>`;
+                list.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function removePending(index) {
+            pendingFiles.splice(index, 1);
+            updatePendingUI();
+        }
+
+        async function uploadBatch() {
+            if (pendingFiles.length === 0) return alert("Please select files first");
+
+            const formData = new FormData();
+            pendingFiles.forEach(f => formData.append('files', f));
+
+            const res = await fetch('/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            // Clear pending after successful upload
+            pendingFiles = [];
+            updatePendingUI();
+
+            // Render the File Dashboard Table
+            updateFileDashboard(data.file_details);
+        }
+
+        function updateFileDashboard(files) {
+            document.getElementById('file-dashboard').style.display = 'block';
+            document.getElementById('workspace').style.display = 'block';
+
+            const tbody = document.getElementById('file-list-body');
+            const activeSelect = document.getElementById('active-file-select');
+
+            // Keep existing options/rows or clear? Let's merge or just append.
+            // For simplicity, we assume the backend returns the "just uploaded" batch.
+            // But to persist the list, we should check cache.
+
+            files.forEach(f => {
+                uploadedFilesCache[f.filename] = f;
+
+                // Add to Table
+                const row = `<tr>
+                    <td><b>${f.filename}</b></td>
+                    <td>${f.row_count} rows x ${f.col_count} cols</td>
+                    <td style="color:${f.missing_count > 0 ? 'var(--warning)' : 'var(--text-muted)'}">${f.missing_count} nulls</td>
+                    <td>${f.headers.slice(0, 3).map(h => `<span class="tag">${h}</span>`).join('')}...</td>
+                    <td><span style="color:var(--success)">Ready</span></td>
+                </tr>`;
+                tbody.innerHTML += row;
+
+                // Add to Active Select Dropdown
+                const opt = document.createElement('option');
+                opt.value = f.filename;
+                opt.innerText = f.filename;
+                activeSelect.appendChild(opt);
+            });
+
+            // Automatically select the last uploaded file
+            if (files.length > 0) {
+                activeSelect.value = files[files.length - 1].filename;
+                switchActiveFile();
+            }
+        }
+
+        // TABS
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+
+            const btns = document.querySelectorAll('.tab-btn');
+            const map = { 'clean': 0, 'estimate': 1, 'visualize': 2 };
+            btns[map[tabId]].classList.add('active');
+        }
+
+        function toggleSchema() {
+            const panel = document.getElementById('schema-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // WORKFLOW API
+        async function switchActiveFile() {
+            const filename = document.getElementById('active-file-select').value;
+            if (!filename) return;
+
+            const res = await fetch('/get-file-details', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename })
+            });
+            const data = await res.json();
+
+            const weightSelect = document.getElementById('weight-col-select');
+            const targetContainer = document.getElementById('target-cols-container');
+            const schemaSelect = document.getElementById('schema-col-select');
+
+            weightSelect.innerHTML = '';
+            targetContainer.innerHTML = '';
+            schemaSelect.innerHTML = '<option>Select Column...</option>';
+
+            data.numeric_columns.forEach(col => {
+                weightSelect.innerHTML += `<option value="${col}">${col}</option>`;
+                const label = document.createElement('label');
+                label.style.display = 'flex'; label.style.gap = '8px'; label.style.fontSize = '0.9rem';
+                label.innerHTML = `<input type="checkbox" value="${col}" class="target-check" style="width:16px; height:16px;"> ${col}`;
+                targetContainer.appendChild(label);
+            });
+
+            data.headers.forEach(col => {
+                schemaSelect.innerHTML += `<option value="${col}">${col}</option>`;
+            });
+        }
+
+        async function applyMapping() {
+            const filename = document.getElementById('active-file-select').value;
+            const oldName = document.getElementById('schema-col-select').value;
+            const newName = document.getElementById('schema-new-name').value;
+            const res = await fetch('/apply-schema', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, mapping: { [oldName]: newName } })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('schema-feedback').innerText = `✓ Mapped '${oldName}' → '${newName}'`;
+                switchActiveFile();
+            }
+        }
+
+        async function runCleaning() {
+            const filename = document.getElementById('active-file-select').value;
+            const res = await fetch('/clean-data', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename,
+                    impute_method: document.getElementById('impute-method').value,
+                    remove_outliers: document.getElementById('remove-outliers').checked,
+                    apply_rules: document.getElementById('apply-rules').checked
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                const logs = document.getElementById('clean-logs');
+                logs.style.display = 'block';
+                logs.innerHTML = '<strong><i data-lucide="terminal-square" style="width:14px; vertical-align:middle;"></i> Execution Log:</strong><br>' + data.logs.join('<br>');
+                lucide.createIcons();
+            }
+        }
+
+        async function runEstimation() {
+            const filename = document.getElementById('active-file-select').value;
+            const weightCol = document.getElementById('weight-col-select').value;
+            const targetCols = Array.from(document.querySelectorAll('.target-check:checked')).map(c => c.value);
+            const res = await fetch('/calculate-estimates', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename, weight_column: weightCol, target_columns: targetCols,
+                    population_total: document.getElementById('pop-total-input').value
+                })
+            });
+            const data = await res.json();
+            const tbody = document.getElementById('results-body');
+            tbody.innerHTML = data.estimates.map(e => `
+                <tr>
+                    <td style="font-weight:600;">${e.column}</td>
+                    <td>${e.mean}</td>
+                    <td>${e.std_error}</td>
+                    <td style="color:var(--accent); font-weight:700;">±${e.margin_of_error}</td>
+                    <td>${e.ci_95_lower} - ${e.ci_95_upper}</td>
+                    <td>${e.population_estimate}</td>
+                </tr>
+            `).join('');
+            document.getElementById('results-area').style.display = 'block';
+            document.getElementById('tab-viz').disabled = false;
+        }
+
+        async function generateVisuals() {
+            const res = await fetch('/generate-visuals', { method: 'POST' });
+            const data = await res.json();
+            if (data.distribution_chart) document.getElementById('chart-dist').innerHTML = `<img src="data:image/png;base64,${data.distribution_chart}" style="width:100%; height:100%; object-fit:contain;">`;
+            if (data.boxplot_chart) document.getElementById('chart-box').innerHTML = `<img src="data:image/png;base64,${data.boxplot_chart}" style="width:100%; height:100%; object-fit:contain;">`;
+            if (data.ai_summary) {
+                const summaryBox = document.getElementById('ai-summary-display');
+                summaryBox.style.display = 'block';
+                summaryBox.innerHTML = `<h4 style="margin-top:0; color:var(--accent);"><i data-lucide="bot" style="width:18px; vertical-align:middle;"></i> AI Executive Summary</h4>` + data.ai_summary;
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+
+</html>
