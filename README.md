@@ -117,8 +117,7 @@ Where:
 
 ## 👥 Team NumerIQ
 
-* **Lead Developer:** [Your Name]
-* **Team Members:** [Teammate Names]
+* **Team Members:** Alan S, Hussain Mustafa Ali, Janani E
 
 *Built for Statathon 2025*
 
