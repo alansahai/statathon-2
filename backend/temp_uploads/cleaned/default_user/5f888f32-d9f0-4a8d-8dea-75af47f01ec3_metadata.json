@@ -1,0 +1,218 @@
+{
+  "file_id": "5f888f32-d9f0-4a8d-8dea-75af47f01ec3",
+  "metadata": {
+    "original_filename": "survey_data_2025.csv",
+    "rows": 2500,
+    "columns": 15,
+    "upload_timestamp": "2025-01-07T10:30:00"
+  },
+  "issue_summary": {
+    "missing_summary": {
+      "age": {
+        "missing_count": 145,
+        "missing_percent": 5.8,
+        "non_missing_count": 2355
+      },
+      "income": {
+        "missing_count": 312,
+        "missing_percent": 12.48,
+        "non_missing_count": 2188
+      },
+      "education": {
+        "missing_count": 89,
+        "missing_percent": 3.56,
+        "non_missing_count": 2411
+      },
+      "region": {
+        "missing_count": 23,
+        "missing_percent": 0.92,
+        "non_missing_count": 2477
+      }
+    },
+    "numeric_summary": {
+      "age": {
+        "dtype": "float64",
+        "count": 2355,
+        "mean": 42.5,
+        "std": 15.3,
+        "min": 18.0,
+        "q1": 30.0,
+        "median": 41.0,
+        "q3": 55.0,
+        "max": 95.0,
+        "unique_count": 78
+      },
+      "income": {
+        "dtype": "float64",
+        "count": 2188,
+        "mean": 52000.0,
+        "std": 28000.0,
+        "min": 12000.0,
+        "q1": 32000.0,
+        "median": 48000.0,
+        "q3": 68000.0,
+        "max": 250000.0,
+        "unique_count": 1523
+      },
+      "household_size": {
+        "dtype": "int64",
+        "count": 2500,
+        "mean": 3.2,
+        "std": 1.8,
+        "min": 1.0,
+        "q1": 2.0,
+        "median": 3.0,
+        "q3": 4.0,
+        "max": 12.0,
+        "unique_count": 12
+      }
+    },
+    "categorical_summary": {
+      "education": {
+        "dtype": "object",
+        "count": 2411,
+        "unique_count": 6,
+        "top_values": {
+          "Bachelor": 890,
+          "High School": 654,
+          "Master": 432,
+          "PhD": 198,
+          "Associate": 156,
+          "Below High School": 81
+        },
+        "most_common": "Bachelor"
+      },
+      "region": {
+        "dtype": "object",
+        "count": 2477,
+        "unique_count": 4,
+        "top_values": {
+          "Urban": 1234,
+          "Suburban": 789,
+          "Rural": 345,
+          "Remote": 109
+        },
+        "most_common": "Urban"
+      },
+      "employment_status": {
+        "dtype": "object",
+        "count": 2500,
+        "unique_count": 5,
+        "top_values": {
+          "Employed": 1567,
+          "Self-employed": 423,
+          "Unemployed": 298,
+          "Retired": 156,
+          "Student": 56
+        },
+        "most_common": "Employed"
+      }
+    },
+    "potential_id_columns": [
+      "respondent_id"
+    ]
+  },
+  "outlier_summary": {
+    "age": {
+      "method": "iqr",
+      "lower_bound": -7.5,
+      "upper_bound": 92.5,
+      "q1": 30.0,
+      "q3": 55.0,
+      "iqr": 25.0,
+      "outlier_count": 12,
+      "outlier_percent": 0.51,
+      "outlier_values": [
+        93.0,
+        94.0,
+        95.0,
+        94.5,
+        93.2
+      ]
+    },
+    "income": {
+      "method": "iqr",
+      "lower_bound": -22000.0,
+      "upper_bound": 122000.0,
+      "q1": 32000.0,
+      "q3": 68000.0,
+      "iqr": 36000.0,
+      "outlier_count": 87,
+      "outlier_percent": 3.98,
+      "outlier_values": [
+        150000.0,
+        180000.0,
+        250000.0,
+        175000.0,
+        145000.0
+      ]
+    },
+    "household_size": {
+      "method": "iqr",
+      "lower_bound": -1.0,
+      "upper_bound": 7.0,
+      "q1": 2.0,
+      "q3": 4.0,
+      "iqr": 2.0,
+      "outlier_count": 34,
+      "outlier_percent": 1.36,
+      "outlier_values": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        8,
+        9
+      ]
+    }
+  },
+  "cleaning_logs": [
+    {
+      "timestamp": "2025-01-07T10:32:15",
+      "operation": "detect_issues",
+      "details": {
+        "missing_columns": 4,
+        "numeric_columns": 3,
+        "categorical_columns": 3,
+        "potential_id_columns": 1
+      }
+    },
+    {
+      "timestamp": "2025-01-07T10:32:18",
+      "operation": "impute_missing",
+      "details": {
+        "method": "auto",
+        "columns_processed": 4,
+        "total_values_imputed": 569
+      }
+    },
+    {
+      "timestamp": "2025-01-07T10:32:22",
+      "operation": "detect_outliers",
+      "details": {
+        "method": "iqr",
+        "columns_analyzed": 3,
+        "total_outliers": 133
+      }
+    },
+    {
+      "timestamp": "2025-01-07T10:32:25",
+      "operation": "fix_outliers",
+      "details": {
+        "method": "iqr",
+        "columns_fixed": 3,
+        "outliers_capped": 133
+      }
+    }
+  ],
+  "cleaning_summary": {
+    "missing_values_handled": 569,
+    "duplicates_removed": 0,
+    "outliers_fixed": 133
+  },
+  "row_count": 2500,
+  "column_count": 15,
+  "original_row_count": 2500,
+  "rows_dropped": 0
+}

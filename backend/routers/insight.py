@@ -1,0 +1,206 @@
+"""
+StatFlow AI - Insight Router
+API endpoints for automated insights.
+"""
+
+from fastapi import APIRouter, HTTPException
+from typing import Dict, Any
+import pandas as pd
+import os
+
+from services.insight_engine import InsightEngine
+from models.insight_models import InsightOverviewRequest, FullInsightRequest
+from utils.file_manager import FileManager
+
+router = APIRouter(prefix="/api/insight", tags=["Insights"])
+
+# File manager instance
+file_manager = FileManager()
+
+
+def _load_dataframe(file_id: str, use_weighted: bool = False) -> pd.DataFrame:
+    """Load DataFrame from file_id."""
+    user_id = "default_user"
+    
+    if use_weighted:
+        # Try weighted file first
+        weighted_path = file_manager.get_weighted_path(user_id, file_id)
+        if os.path.exists(weighted_path):
+            return pd.read_csv(weighted_path)
+    
+    # Try cleaned file
+    cleaned_path = file_manager.get_cleaned_path(user_id, file_id)
+    if os.path.exists(cleaned_path):
+        return pd.read_csv(cleaned_path)
+    
+    # Fall back to original upload
+    upload_path = file_manager.get_upload_path(user_id, file_id)
+    if os.path.exists(upload_path):
+        return pd.read_csv(upload_path)
+    
+    raise HTTPException(status_code=404, detail=f"File not found: {file_id}")
+
+
+@router.get("/overview/{file_id}", summary="Get Overview", description="Get data overview insights")
+async def get_overview(file_id: str, use_weighted: bool = False) -> Dict[str, Any]:
+    """
+    Get a high-level overview of the data.
+    
+    Returns:
+    - Data shape and column types
+    - Data quality metrics
+    - Quick numeric summaries
+    """
+    try:
+        df = _load_dataframe(file_id, use_weighted)
+        engine = InsightEngine(df)
+        
+        result = engine.generate_overview()
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "overview": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Overview error: {str(e)}")
+
+
+@router.post("/full", summary="Get Full Insights", description="Get comprehensive insights")
+async def get_full_insights(request: FullInsightRequest) -> Dict[str, Any]:
+    """
+    Get comprehensive insights combining descriptive, forecast, and risk analysis.
+    
+    Returns:
+    - Overview: Basic data stats and quality
+    - Descriptive findings: Correlations, distributions, missing data
+    - Forecast signals: Trends and seasonality (if time/value columns provided)
+    - Risks: Subgroup data quality flags
+    - Recommended actions: Prioritized suggestions
+    """
+    try:
+        df = _load_dataframe(request.file_id, request.use_weighted)
+        engine = InsightEngine(df)
+        
+        result = engine.generate_full_insights(
+            time_column=request.time_column,
+            value_column=request.value_column,
+            group_column=request.group_column
+        )
+        
+        return {
+            "success": True,
+            "file_id": request.file_id,
+            "insights": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Insight error: {str(e)}")
+
+
+@router.get("/correlations/{file_id}", summary="Get Correlations", description="Get correlation analysis")
+async def get_correlations(file_id: str, use_weighted: bool = False) -> Dict[str, Any]:
+    """
+    Get high correlations between numeric variables.
+    """
+    try:
+        df = _load_dataframe(file_id, use_weighted)
+        engine = InsightEngine(df)
+        
+        result = engine._analyze_correlations()
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "correlations": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Correlation error: {str(e)}")
+
+
+@router.get("/distributions/{file_id}", summary="Get Distributions", description="Get distribution analysis")
+async def get_distributions(file_id: str, use_weighted: bool = False) -> Dict[str, Any]:
+    """
+    Get analysis of unusual distributions.
+    """
+    try:
+        df = _load_dataframe(file_id, use_weighted)
+        engine = InsightEngine(df)
+        
+        result = engine._analyze_distributions()
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "distributions": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Distribution error: {str(e)}")
+
+
+@router.get("/missing/{file_id}", summary="Get Missing Data", description="Get missing data analysis")
+async def get_missing_data(file_id: str, use_weighted: bool = False) -> Dict[str, Any]:
+    """
+    Get analysis of missing data patterns.
+    """
+    try:
+        df = _load_dataframe(file_id, use_weighted)
+        engine = InsightEngine(df)
+        
+        result = engine._analyze_missing_data()
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "missing_data": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Missing data error: {str(e)}")
+
+
+@router.get("/risks/{file_id}", summary="Get Risk Flags", description="Get subgroup risk analysis")
+async def get_risk_flags(
+    file_id: str, 
+    group_column: str = None,
+    use_weighted: bool = False
+) -> Dict[str, Any]:
+    """
+    Get risk flags for subgroups in the data.
+    """
+    try:
+        df = _load_dataframe(file_id, use_weighted)
+        engine = InsightEngine(df)
+        
+        result = engine._analyze_subgroup_risks(group_column)
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "risks": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Risk analysis error: {str(e)}")
+
+
+@router.get("/operations-log/{file_id}", summary="Get Operations Log", description="Get insight operations log")
+async def get_operations_log(file_id: str, use_weighted: bool = False) -> Dict[str, Any]:
+    """
+    Get the operations log for an insight session.
+    """
+    try:
+        df = _load_dataframe(file_id, use_weighted)
+        engine = InsightEngine(df)
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "operations_log": engine.get_operations_log()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving log: {str(e)}")

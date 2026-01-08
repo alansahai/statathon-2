@@ -1,0 +1,11 @@
+id,name,age,income,education,satisfaction,base_weight,poststrat_weight
+1,John Doe,25,45000.0,Bachelor,4,1.0,0.14285714285714285
+2,Jane Smith,34,62000.0,Master,5,1.0,0.14285714285714285
+3,Bob Johnson,45,78000.0,PhD,5,1.0,1.0
+4,Alice Brown,29,51000.0,Bachelor,3,1.0,0.14285714285714285
+5,Charlie Davis,52,95000.0,Master,4,1.0,0.14285714285714285
+6,Diana Wilson,38,,Bachelor,4,1.0,0.14285714285714285
+7,Eve Martinez,41,73000.0,PhD,5,1.0,1.0
+8,Frank Taylor,33,58000.0,Bachelor,3,1.0,0.14285714285714285
+9,Grace Lee,47,82000.0,Master,5,1.0,0.14285714285714285
+10,Henry Clark,28,48000.0,Associate,2,1.0,1.0

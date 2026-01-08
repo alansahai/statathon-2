@@ -1,0 +1,592 @@
+{
+  "file_id": "5f888f32-d9f0-4a8d-8dea-75af47f01ec3",
+  "descriptive_stats": {
+    "age": {
+      "type": "numeric",
+      "count": 2355,
+      "missing": 145,
+      "mean": 42.53,
+      "median": 41.0,
+      "std": 15.34,
+      "min": 18.0,
+      "max": 95.0,
+      "skewness": 0.45,
+      "kurtosis": -0.23,
+      "q1": 30.0,
+      "q3": 55.0
+    },
+    "income": {
+      "type": "numeric",
+      "count": 2188,
+      "missing": 312,
+      "mean": 52000.0,
+      "median": 48000.0,
+      "std": 28000.0,
+      "min": 12000.0,
+      "max": 250000.0,
+      "skewness": 1.87,
+      "kurtosis": 4.52,
+      "q1": 32000.0,
+      "q3": 68000.0
+    },
+    "household_size": {
+      "type": "numeric",
+      "count": 2500,
+      "missing": 0,
+      "mean": 3.2,
+      "median": 3.0,
+      "std": 1.8,
+      "min": 1.0,
+      "max": 12.0,
+      "skewness": 1.23,
+      "kurtosis": 2.15,
+      "q1": 2.0,
+      "q3": 4.0
+    },
+    "satisfaction_score": {
+      "type": "numeric",
+      "count": 2500,
+      "missing": 0,
+      "mean": 7.2,
+      "median": 7.5,
+      "std": 1.9,
+      "min": 1.0,
+      "max": 10.0,
+      "skewness": -0.65,
+      "kurtosis": 0.12,
+      "q1": 6.0,
+      "q3": 9.0
+    },
+    "education": {
+      "type": "categorical",
+      "count": 2411,
+      "missing": 89,
+      "unique_count": 6,
+      "mode": "Bachelor",
+      "frequencies": {
+        "Bachelor": 890,
+        "High School": 654,
+        "Master": 432,
+        "PhD": 198,
+        "Associate": 156,
+        "Below High School": 81
+      }
+    },
+    "region": {
+      "type": "categorical",
+      "count": 2477,
+      "missing": 23,
+      "unique_count": 4,
+      "mode": "Urban",
+      "frequencies": {
+        "Urban": 1234,
+        "Suburban": 789,
+        "Rural": 345,
+        "Remote": 109
+      }
+    },
+    "employment_status": {
+      "type": "categorical",
+      "count": 2500,
+      "missing": 0,
+      "unique_count": 5,
+      "mode": "Employed",
+      "frequencies": {
+        "Employed": 1567,
+        "Self-employed": 423,
+        "Unemployed": 298,
+        "Retired": 156,
+        "Student": 56
+      }
+    },
+    "gender": {
+      "type": "categorical",
+      "count": 2500,
+      "missing": 0,
+      "unique_count": 3,
+      "mode": "Female",
+      "frequencies": {
+        "Female": 1289,
+        "Male": 1156,
+        "Other": 55
+      }
+    }
+  },
+  "crosstabs": [
+    {
+      "row_var": "education",
+      "col_var": "employment_status",
+      "table": {
+        "Bachelor": {
+          "Employed": 589,
+          "Self-employed": 178,
+          "Unemployed": 87,
+          "Retired": 28,
+          "Student": 8
+        },
+        "High School": {
+          "Employed": 387,
+          "Self-employed": 89,
+          "Unemployed": 123,
+          "Retired": 42,
+          "Student": 13
+        },
+        "Master": {
+          "Employed": 298,
+          "Self-employed": 112,
+          "Unemployed": 15,
+          "Retired": 5,
+          "Student": 2
+        },
+        "PhD": {
+          "Employed": 143,
+          "Self-employed": 34,
+          "Unemployed": 12,
+          "Retired": 8,
+          "Student": 1
+        }
+      },
+      "chi_square_test": {
+        "chi2_statistic": 187.45,
+        "p_value": 0.0001,
+        "degrees_of_freedom": 12,
+        "warnings": []
+      }
+    },
+    {
+      "row_var": "region",
+      "col_var": "income_bracket",
+      "table": {
+        "Urban": {
+          "Low": 234,
+          "Medium": 567,
+          "High": 433
+        },
+        "Suburban": {
+          "Low": 145,
+          "Medium": 398,
+          "High": 246
+        },
+        "Rural": {
+          "Low": 189,
+          "Medium": 112,
+          "High": 44
+        },
+        "Remote": {
+          "Low": 67,
+          "Medium": 28,
+          "High": 14
+        }
+      },
+      "chi_square_test": {
+        "chi2_statistic": 256.89,
+        "p_value": 1e-05,
+        "degrees_of_freedom": 6,
+        "warnings": []
+      }
+    },
+    {
+      "row_var": "gender",
+      "col_var": "satisfaction_bracket",
+      "table": {
+        "Female": {
+          "Low": 178,
+          "Medium": 534,
+          "High": 577
+        },
+        "Male": {
+          "Low": 198,
+          "Medium": 512,
+          "High": 446
+        },
+        "Other": {
+          "Low": 8,
+          "Medium": 23,
+          "High": 24
+        }
+      },
+      "chi_square_test": {
+        "chi2_statistic": 8.34,
+        "p_value": 0.0803,
+        "degrees_of_freedom": 4,
+        "warnings": [
+          "2 cells have expected frequency < 5"
+        ]
+      }
+    }
+  ],
+  "regression": {
+    "ols": {
+      "dependent_var": "income",
+      "coefficients": {
+        "Intercept": 25000.45,
+        "age": 850.32,
+        "education_years": 3200.75,
+        "household_size": -450.2,
+        "experience": 1250.6
+      },
+      "std_errors": {
+        "Intercept": 2100.3,
+        "age": 125.45,
+        "education_years": 350.2,
+        "household_size": 280.15,
+        "experience": 180.9
+      },
+      "p_values": {
+        "Intercept": 0.0001,
+        "age": 0.0001,
+        "education_years": 0.0001,
+        "household_size": 0.1089,
+        "experience": 0.0001
+      },
+      "r_squared": 0.6234,
+      "adj_r_squared": 0.6189
+    },
+    "logistic": {
+      "dependent_var": "employment_status_binary",
+      "coefficients": {
+        "Intercept": -2.145,
+        "age": 0.032,
+        "education_years": 0.285,
+        "gender_male": 0.42,
+        "urban": 0.615
+      },
+      "odds_ratios": {
+        "Intercept": 0.117,
+        "age": 1.033,
+        "education_years": 1.33,
+        "gender_male": 1.522,
+        "urban": 1.849
+      },
+      "std_errors": {
+        "Intercept": 0.345,
+        "age": 0.008,
+        "education_years": 0.045,
+        "gender_male": 0.125,
+        "urban": 0.135
+      },
+      "p_values": {
+        "Intercept": 0.0001,
+        "age": 0.0001,
+        "education_years": 0.0001,
+        "gender_male": 0.0008,
+        "urban": 0.0001
+      },
+      "accuracy": 0.8234,
+      "precision": 0.8156,
+      "recall": 0.8389,
+      "f1": 0.8271
+    }
+  },
+  "forecasting": {
+    "target_variable": "monthly_sales",
+    "forecast_horizon": 12,
+    "model_type": "SARIMA",
+    "actual_values": [
+      1250.5,
+      1320.8,
+      1180.3,
+      1425.6,
+      1390.2,
+      1510.4,
+      1475.9,
+      1620.3,
+      1580.1,
+      1705.8,
+      1650.2,
+      1820.5,
+      1780.3,
+      1920.6,
+      1850.4,
+      2050.8,
+      2010.5,
+      2180.3,
+      2120.7,
+      2305.9
+    ],
+    "time_periods": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32
+    ],
+    "forecast_values": [
+      1250.5,
+      1320.8,
+      1180.3,
+      1425.6,
+      1390.2,
+      1510.4,
+      1475.9,
+      1620.3,
+      1580.1,
+      1705.8,
+      1650.2,
+      1820.5,
+      1780.3,
+      1920.6,
+      1850.4,
+      2050.8,
+      2010.5,
+      2180.3,
+      2120.7,
+      2305.9,
+      2250.3,
+      2410.5,
+      2380.8,
+      2520.4,
+      2490.6,
+      2650.2,
+      2610.8,
+      2780.5,
+      2740.3,
+      2920.7,
+      2880.5,
+      3050.2
+    ],
+    "lower_bounds": [
+      1220.3,
+      1285.4,
+      1145.7,
+      1385.2,
+      1350.8,
+      1465.9,
+      1430.5,
+      1570.8,
+      1525.4,
+      1650.3,
+      1590.7,
+      1755.8,
+      1710.5,
+      1845.2,
+      1770.9,
+      1965.4,
+      1920.8,
+      2085.7,
+      2025.3,
+      2200.5,
+      2140.8,
+      2290.3,
+      2255.6,
+      2385.7,
+      2350.2,
+      2495.8,
+      2450.4,
+      2610.3,
+      2565.8,
+      2735.4,
+      2685.9,
+      2845.6
+    ],
+    "upper_bounds": [
+      1280.7,
+      1356.2,
+      1214.9,
+      1466.0,
+      1429.6,
+      1554.9,
+      1521.3,
+      1669.8,
+      1634.8,
+      1761.3,
+      1709.7,
+      1885.2,
+      1850.1,
+      1996.0,
+      1929.9,
+      2136.2,
+      2100.2,
+      2274.9,
+      2216.1,
+      2411.3,
+      2359.8,
+      2530.7,
+      2506.0,
+      2655.1,
+      2631.0,
+      2804.6,
+      2771.2,
+      2950.7,
+      2914.8,
+      3106.0,
+      3075.1,
+      3254.8
+    ],
+    "decomposition": {
+      "trend": "upward",
+      "seasonal_period": 12,
+      "seasonal_strength": 0.35
+    },
+    "metrics": {
+      "mae": 45.67,
+      "mape": 3.82,
+      "rmse": 58.34
+    }
+  },
+  "ml_results": {
+    "model_type": "random_forest",
+    "training_params": {
+      "n_estimators": 100,
+      "max_depth": 10,
+      "min_samples_split": 5,
+      "random_state": 42
+    },
+    "metrics": {
+      "accuracy": 0.8756,
+      "precision": 0.8621,
+      "recall": 0.8893,
+      "f1": 0.8755,
+      "roc_auc": 0.9234
+    },
+    "feature_importance": {
+      "education_years": 0.2345,
+      "age": 0.1876,
+      "income": 0.1543,
+      "household_size": 0.1234,
+      "work_experience": 0.0987,
+      "urban_residence": 0.0765,
+      "gender_male": 0.0543,
+      "marital_status": 0.0432,
+      "health_score": 0.0198,
+      "region_north": 0.0077
+    },
+    "confusion_matrix": [
+      [
+        450,
+        45
+      ],
+      [
+        32,
+        473
+      ]
+    ],
+    "classification_report": {
+      "0": {
+        "precision": 0.93,
+        "recall": 0.91,
+        "f1-score": 0.92
+      },
+      "1": {
+        "precision": 0.91,
+        "recall": 0.94,
+        "f1-score": 0.92
+      }
+    }
+  },
+  "insight_results": {
+    "correlations": {
+      "education_years-income": 0.7845,
+      "age-work_experience": 0.8923,
+      "household_size-children": 0.9012,
+      "income-housing_quality": 0.6734,
+      "education_years-employment_status": 0.5432,
+      "age-health_score": -0.6589,
+      "income-debt_ratio": -0.7123,
+      "urban_residence-access_to_services": 0.8456,
+      "marital_status-household_size": 0.5678,
+      "work_experience-income": 0.7234
+    },
+    "anomalies": {
+      "income": "Detected 23 extreme outliers (>3 IQR) with values exceeding $150,000, suggesting possible data entry errors or ultra-high-income individuals",
+      "age": "Found 5 records with age values above 95 years, which may indicate centenarians or data quality issues",
+      "household_size": "Identified 12 households with more than 10 members, which is unusual and warrants verification",
+      "work_experience": "Detected 8 cases where work experience exceeds age minus 15, indicating logical inconsistencies"
+    },
+    "risk_groups": {
+      "Low-education Rural Youth": {
+        "risk_score": 0.82,
+        "key_metric": "68% unemployment rate",
+        "sample_size": 145
+      },
+      "Single-parent Urban Households": {
+        "risk_score": 0.75,
+        "key_metric": "High debt-to-income ratio (avg: 0.76)",
+        "sample_size": 203
+      },
+      "Elderly with Limited Access": {
+        "risk_score": 0.71,
+        "key_metric": "Poor health scores (avg: 3.2/10)",
+        "sample_size": 178
+      },
+      "Under-represented Minorities": {
+        "risk_score": 0.45,
+        "key_metric": "Only 4.2% of sample",
+        "sample_size": 105
+      }
+    },
+    "drivers": {
+      "education_years": 0.8234,
+      "urban_residence": 0.7456,
+      "household_income": 0.7123,
+      "access_to_healthcare": 0.6789,
+      "employment_stability": 0.6234,
+      "family_support_network": 0.5567,
+      "digital_literacy": 0.4891,
+      "transportation_access": 0.4123
+    },
+    "recommended_actions": [
+      {
+        "action": "Implement targeted education and vocational training programs for rural youth",
+        "justification": "Low-education rural youth show 68% unemployment with risk score 0.82, indicating urgent need for skill development interventions",
+        "priority": "High"
+      },
+      {
+        "action": "Establish financial counseling services for single-parent households",
+        "justification": "Single-parent urban households exhibit high debt-to-income ratios (0.76), requiring debt management and budgeting support",
+        "priority": "High"
+      },
+      {
+        "action": "Expand healthcare access and preventive services for elderly populations",
+        "justification": "Elderly with limited access show poor health scores (3.2/10) and strong negative correlation between age and health (-0.66)",
+        "priority": "High"
+      },
+      {
+        "action": "Increase sampling efforts to better represent minority populations",
+        "justification": "Under-represented minorities constitute only 4.2% of sample, limiting generalizability of findings to these groups",
+        "priority": "Medium"
+      },
+      {
+        "action": "Investigate and validate extreme outliers in income data",
+        "justification": "23 extreme outliers detected in income variable, requiring data quality verification to ensure accurate analysis",
+        "priority": "Medium"
+      },
+      {
+        "action": "Develop policies leveraging education as primary outcome driver",
+        "justification": "Education years shows highest driver score (0.82) with strong correlation to income (0.78) and employment (0.54)",
+        "priority": "High"
+      }
+    ],
+    "missing_patterns": "Missing data analysis reveals non-random patterns: income data is 15% more likely to be missing in rural areas, and health scores are systematically missing for respondents aged 18-25. These patterns suggest potential selection bias and should be addressed through targeted follow-up surveys or multiple imputation techniques."
+  },
+  "analysis_timestamp": "2025-01-07T10:40:00",
+  "weighted": true,
+  "weight_column": "raked_weight_trimmed"
+}

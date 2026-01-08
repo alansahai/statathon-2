@@ -1,0 +1,11 @@
+id,name,age,income,education,satisfaction
+1,John Doe,25,45000,Bachelor,4
+2,Jane Smith,34,62000,Master,5
+3,Bob Johnson,45,78000,PhD,5
+4,Alice Brown,29,51000,Bachelor,3
+5,Charlie Davis,52,95000,Master,4
+6,Diana Wilson,38,,Bachelor,4
+7,Eve Martinez,41,73000,PhD,5
+8,Frank Taylor,33,58000,Bachelor,3
+9,Grace Lee,47,82000,Master,5
+10,Henry Clark,28,48000,Associate,2

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+        }
+
+        .hero-dashboard {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-dashboard h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-dashboard p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-card {
+            background: #e8f4fd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .info-card h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card p {
+            color: var(--text-color);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: linear-gradient(135deg, var(--primary-color), #2c6ba8);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .kpi-subtitle {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .risk-section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .risk-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .risk-item {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .risk-item.high {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .risk-item.medium {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        .risk-item.low {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+        }
+
+        .risk-icon {
+            font-size: 1.5rem;
+            min-width: 30px;
+        }
+
+        .risk-content h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-color);
+        }
+
+        .risk-content p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .risk-badge.high {
+            background: #dc3545;
+            color: white;
+        }
+
+        .risk-badge.medium {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .risk-badge.low {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-top: 1rem;
+        }
+
+        .loading-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(26, 84, 144, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="container">
+        <div class="dashboard-container">
+            <div class="hero-dashboard">
+                <h1>📊 Analytics Dashboard</h1>
+                <p>Monitor data quality, trends, and key performance indicators</p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>📈 KPIs</h4>
+                    <p>Get a quick overview of your dataset's health and size. Track total records, columns, and data
+                        completeness at a glance.</p>
+                </div>
+                <div class="info-card">
+                    <h4>📉 Trends</h4>
+                    <p>Identify patterns over time in your data. Understand how values change and detect seasonality or
+                        anomalies.</p>
+                </div>
+                <div class="info-card">
+                    <h4>⚠️ Risks</h4>
+                    <p>Highlight data quality issues like missing values, outliers, and skewed distributions that need
+                        attention.</p>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <section class="card">
+                <h2>Key Performance Indicators</h2>
+                <div id="kpiLoading" class="loading-overlay">
+                    <div class="spinner"></div>
+                    <p style="margin-left: 1rem;">Loading KPIs...</p>
+                </div>
+                <div id="kpiGrid" class="kpi-grid" style="display: none;"></div>
+            </section>
+
+            <!-- Risk Indicators -->
+            <section class="risk-section">
+                <h2>⚠️ Risk Analysis</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                    Potential data quality issues that may affect your analysis
+                </p>
+                <div id="riskLoading" class="loading-overlay">
+                    <div class="spinner"></div>
+                    <p style="margin-left: 1rem;">Analyzing risks...</p>
+                </div>
+                <div id="riskList" class="risk-list" style="display: none;"></div>
+            </section>
+
+            <!-- Trend Visualization -->
+            <section class="chart-container">
+                <h2>📈 Trend Analysis</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                    Select a numeric column to visualize trends and patterns
+                </p>
+                <div class="form-group">
+                    <label>Select Column:</label>
+                    <select id="trendColumn" class="column-select">
+                        <option value="">-- Loading columns... --</option>
+                    </select>
+                    <button id="trendBtn" class="btn btn-primary" style="margin-top: 1rem;">
+                        Generate Trend Chart
+                    </button>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
+
+            <div class="card">
+                <h2>💬 Next Steps</h2>
+                <p style="margin-bottom: 1rem;">Ready to ask questions about your data using natural language?</p>
+                <button id="nlqBtn" class="btn btn-primary btn-large">
+                    Start Chat Analysis →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script>
+        let currentFileId = null;
+        let trendChart = null;
+
+        // Get file_id from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        currentFileId = urlParams.get('file_id');
+
+        // If no file_id in URL, check localStorage
+        if (!currentFileId) {
+            currentFileId = localStorage.getItem('currentFileId');
+        }
+
+        if (!currentFileId) {
+            alert('No file ID found. Please upload a file first.');
+            window.location.href = 'index.html';
+        }
+
+        // Load KPIs
+        async function loadKPIs() {
+            try {
+                const response = await fetch(`http://localhost:8000/api/dashboard/kpi/${currentFileId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load KPIs');
+                }
+
+                const data = await response.json();
+
+                document.getElementById('kpiLoading').style.display = 'none';
+                document.getElementById('kpiGrid').style.display = 'grid';
+
+                const kpis = data.kpis || data;
+
+                // Create KPI cards
+                const kpiHTML = `
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Rows</div>
+                        <div class="kpi-value">${kpis.total_rows || kpis.rows || 0}</div>
+                        <div class="kpi-subtitle">Records in dataset</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Columns</div>
+                        <div class="kpi-value">${kpis.total_columns || kpis.columns || 0}</div>
+                        <div class="kpi-subtitle">Variables tracked</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Missing Data</div>
+                        <div class="kpi-value">${kpis.missing_percentage || kpis.missing_pct || '0'}%</div>
+                        <div class="kpi-subtitle">Completeness score</div>
+                    </div>
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #28a745, #218838);">
+                        <div class="kpi-label">Data Quality</div>
+                        <div class="kpi-value">${kpis.quality_score || calculateQuality(kpis)}%</div>
+                        <div class="kpi-subtitle">Overall health</div>
+                    </div>
+                `;
+
+                document.getElementById('kpiGrid').innerHTML = kpiHTML;
+
+            } catch (error) {
+                console.error('Error loading KPIs:', error);
+                document.getElementById('kpiLoading').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <p>Unable to load KPIs</p>
+                    </div>
+                `;
+            }
+        }
+
+        function calculateQuality(kpis) {
+            const missingPct = parseFloat(kpis.missing_percentage || kpis.missing_pct || 0);
+            return Math.max(0, Math.round(100 - missingPct));
+        }
+
+        // Load Risks
+        async function loadRisks() {
+            try {
+                const response = await fetch(`http://localhost:8000/api/dashboard/risks/${currentFileId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load risks');
+                }
+
+                const data = await response.json();
+
+                document.getElementById('riskLoading').style.display = 'none';
+                document.getElementById('riskList').style.display = 'grid';
+
+                const risks = data.risks || [];
+
+                if (risks.length === 0) {
+                    document.getElementById('riskList').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>No significant risks detected. Your data looks healthy!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Build risk items
+                let riskHTML = '';
+
+                // High missing columns
+                if (data.high_missing_columns && data.high_missing_columns.length > 0) {
+                    riskHTML += `
+                        <div class="risk-item high">
+                            <div class="risk-icon">🔴</div>
+                            <div class="risk-content">
+                                <h4>High Missing Values <span class="risk-badge high">HIGH</span></h4>
+                                <p>Columns: ${data.high_missing_columns.join(', ')}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Skewed columns
+                if (data.skewed_columns && data.skewed_columns.length > 0) {
+                    riskHTML += `
+                        <div class="risk-item medium">
+                            <div class="risk-icon">🟡</div>
+                            <div class="risk-content">
+                                <h4>Skewed Distribution <span class="risk-badge medium">MEDIUM</span></h4>
+                                <p>Columns: ${data.skewed_columns.join(', ')}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Outlier columns
+                if (data.outlier_columns && data.outlier_columns.length > 0) {
+                    riskHTML += `
+                        <div class="risk-item medium">
+                            <div class="risk-icon">🟠</div>
+                            <div class="risk-content">
+                                <h4>Outliers Detected <span class="risk-badge medium">MEDIUM</span></h4>
+                                <p>Columns: ${data.outlier_columns.join(', ')}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // High cardinality
+                if (data.high_cardinality_columns && data.high_cardinality_columns.length > 0) {
+                    riskHTML += `
+                        <div class="risk-item low">
+                            <div class="risk-icon">🔵</div>
+                            <div class="risk-content">
+                                <h4>High Cardinality <span class="risk-badge low">LOW</span></h4>
+                                <p>Columns with many unique values: ${data.high_cardinality_columns.join(', ')}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('riskList').innerHTML = riskHTML || `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p>No risks to display</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error loading risks:', error);
+                document.getElementById('riskLoading').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <p>Unable to load risk analysis</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load Columns for Trend Selector
+        async function loadColumns() {
+            try {
+                const response = await fetch(`http://localhost:8000/api/schema/columns/${currentFileId}`);
+                const data = await response.json();
+
+                const select = document.getElementById('trendColumn');
+                select.innerHTML = '<option value="">-- Select a column --</option>' +
+                    (data.columns || []).map(col => `<option value="${col}">${col}</option>`).join('');
+
+            } catch (error) {
+                console.error('Error loading columns:', error);
+            }
+        }
+
+        // Generate Trend Chart
+        document.getElementById('trendBtn').addEventListener('click', async () => {
+            const column = document.getElementById('trendColumn').value;
+
+            if (!column) {
+                alert('Please select a column');
+                return;
+            }
+
+            try {
+                const btn = document.getElementById('trendBtn');
+                btn.disabled = true;
+                btn.textContent = 'Loading...';
+
+                const response = await fetch(`http://localhost:8000/api/dashboard/trend/${currentFileId}/${column}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load trend data');
+                }
+
+                const data = await response.json();
+
+                // Destroy existing chart
+                if (trendChart) {
+                    trendChart.destroy();
+                }
+
+                // Create new chart
+                const ctx = document.getElementById('trendChart').getContext('2d');
+                trendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels || data.index || Array.from({ length: (data.values || []).length }, (_, i) => i + 1),
+                        datasets: [{
+                            label: column,
+                            data: data.values || data.data || [],
+                            borderColor: '#1a5490',
+                            backgroundColor: 'rgba(26, 84, 144, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Trend Analysis: ${column}`
+                            },
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+
+                btn.disabled = false;
+                btn.textContent = 'Generate Trend Chart';
+
+            } catch (error) {
+                console.error('Error generating trend:', error);
+                alert('Error generating trend chart. Please try another column.');
+
+                const btn = document.getElementById('trendBtn');
+                btn.disabled = false;
+                btn.textContent = 'Generate Trend Chart';
+            }
+        });
+
+        // Navigate to NLQ
+        document.getElementById('nlqBtn').addEventListener('click', () => {
+            window.location.href = `nlq.html?file_id=${currentFileId}`;
+        });
+
+        // Load all data on page load
+        loadKPIs();
+        loadRisks();
+        loadColumns();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Analysis - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .analysis-container {
+            max-width: 1100px;
+            margin: 2rem auto;
+        }
+
+        .hero-analysis {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #6f42c1, #5a32a3);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-analysis h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-analysis p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .column-selector {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .column-selector h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .column-selector select {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s;
+        }
+
+        .analysis-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .analysis-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analysis-title h3 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .analysis-icon {
+            font-size: 1.8rem;
+        }
+
+        .analysis-description {
+            background: #e8f4fd;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .analysis-description strong {
+            color: var(--primary-color);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .input-group select,
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .results-area {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .results-area.show {
+            display: block;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .results-table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .results-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+
+        .warning-box strong {
+            color: #856404;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 0.5rem;
+            position: relative;
+        }
+
+        .tooltip-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            width: 280px;
+            z-index: 1;
+            transition: opacity 0.3s;
+            white-space: normal;
+            text-align: left;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="container">
+        <div class="analysis-container">
+            <div class="hero-analysis">
+                <h1>📊 Statistical Analysis</h1>
+                <p>Discover insights through comprehensive statistical methods</p>
+            </div>
+
+            <div class="column-selector card">
+                <h3>📋 Available Columns</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                    Loading columns from your dataset...
+                </p>
+                <div id="columnsList"></div>
+            </div>
+
+            <!-- Descriptive Statistics -->
+            <div class="analysis-card">
+                <div class="analysis-header">
+                    <div class="analysis-title">
+                        <span class="analysis-icon">📈</span>
+                        <h3>Descriptive Statistics</h3>
+                    </div>
+                </div>
+
+                <div class="analysis-description">
+                    <strong>What it does:</strong> Provides basic summary statistics including mean, median, standard
+                    deviation, min/max values, and distribution characteristics for numeric columns.
+                    <br><br>
+                    <strong>Best for:</strong> Understanding the overall shape and spread of your data, identifying
+                    central tendencies, and spotting potential data quality issues.
+                </div>
+
+                <button id="descriptiveBtn" class="btn btn-primary btn-large">
+                    📊 Run Descriptive Statistics
+                    <span class="tooltip-icon">i
+                        <span class="tooltip-text">Calculates count, mean, median, std dev, min, max, and quartiles for
+                            all numeric columns</span>
+                    </span>
+                </button>
+
+                <div id="descriptiveResults" class="results-area"></div>
+            </div>
+
+            <!-- Crosstab Analysis -->
+            <div class="analysis-card">
+                <div class="analysis-header">
+                    <div class="analysis-title">
+                        <span class="analysis-icon">🔀</span>
+                        <h3>Crosstab Analysis</h3>
+                    </div>
+                </div>
+
+                <div class="analysis-description">
+                    <strong>What it does:</strong> Compares two categorical variables to understand relationships and
+                    patterns. Creates a contingency table showing how categories intersect.
+                    <br><br>
+                    <strong>Best for:</strong> Analyzing relationships between groups (e.g., gender vs. income bracket,
+                    region vs. product preference).
+                </div>
+
+                <div class="input-group">
+                    <label>First Variable (Categorical):</label>
+                    <select id="crosstabCat" class="column-select">
+                        <option value="">-- Select Column --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Second Variable (Numeric or Categorical):</label>
+                    <select id="crosstabNum" class="column-select">
+                        <option value="">-- Select Column --</option>
+                    </select>
+                </div>
+
+                <button id="crosstabBtn" class="btn btn-primary btn-large">
+                    🔀 Run Crosstab Analysis
+                    <span class="tooltip-icon">i
+                        <span class="tooltip-text">Performs chi-square test and creates contingency table showing
+                            relationships between variables</span>
+                    </span>
+                </button>
+
+                <div id="crosstabResults" class="results-area"></div>
+            </div>
+
+            <!-- Regression Analysis -->
+            <div class="analysis-card">
+                <div class="analysis-header">
+                    <div class="analysis-title">
+                        <span class="analysis-icon">📉</span>
+                        <h3>Regression Analysis</h3>
+                    </div>
+                </div>
+
+                <div class="analysis-description">
+                    <strong>What it does:</strong> Examines relationships between variables and makes predictions.
+                    Identifies how changes in one variable affect another.
+                    <br><br>
+                    <strong>Best for:</strong> Understanding cause-and-effect relationships, making predictions, and
+                    identifying key factors that influence outcomes.
+                </div>
+
+                <div class="input-group">
+                    <label>Target Variable (What you want to predict):</label>
+                    <select id="regressionTarget" class="column-select">
+                        <option value="">-- Select Column --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Predictor Variables (Comma-separated or leave blank for all):</label>
+                    <input type="text" id="regressionPredictors"
+                        placeholder="e.g., age,income,education or leave blank">
+                </div>
+
+                <button id="regressionBtn" class="btn btn-primary btn-large">
+                    📉 Run Regression Analysis
+                    <span class="tooltip-icon">i
+                        <span class="tooltip-text">Performs linear or logistic regression to understand relationships
+                            and predict outcomes</span>
+                    </span>
+                </button>
+
+                <div id="regressionResults" class="results-area"></div>
+            </div>
+
+            <div class="card">
+                <h2>✅ Next Steps</h2>
+                <p style="margin-bottom: 1rem;">Continue to visualize your findings or generate a comprehensive report.
+                </p>
+                <div class="btn-group">
+                    <button id="dashboardBtn" class="btn btn-primary btn-large">
+                        📊 View Dashboard →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script>
+        let currentFileId = null;
+        let availableColumns = [];
+
+        // Get file_id from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        currentFileId = urlParams.get('file_id');
+
+        // If no file_id in URL, check localStorage
+        if (!currentFileId) {
+            currentFileId = localStorage.getItem('currentFileId');
+        }
+
+        if (!currentFileId) {
+            alert('No file ID found. Please upload a file first.');
+            window.location.href = 'index.html';
+        }
+
+        // Load columns
+        async function loadColumns() {
+            try {
+                const response = await fetch(`http://localhost:8000/api/schema/columns/${currentFileId}`);
+                const data = await response.json();
+                availableColumns = data.columns || [];
+
+                // Display columns list
+                document.getElementById('columnsList').innerHTML = `
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${availableColumns.map(col => `<span style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 15px; font-size: 0.9rem;">${col}</span>`).join('')}
+                    </div>
+                `;
+
+                // Populate dropdowns
+                const dropdowns = ['crosstabCat', 'crosstabNum', 'regressionTarget'];
+                dropdowns.forEach(id => {
+                    const select = document.getElementById(id);
+                    select.innerHTML = '<option value="">-- Select Column --</option>' +
+                        availableColumns.map(col => `<option value="${col}">${col}</option>`).join('');
+                });
+
+            } catch (error) {
+                console.error('Error loading columns:', error);
+                document.getElementById('columnsList').innerHTML = '<p class="error">Error loading columns</p>';
+            }
+        }
+
+        // Descriptive Statistics
+        document.getElementById('descriptiveBtn').addEventListener('click', async () => {
+            try {
+                const btn = document.getElementById('descriptiveBtn');
+                btn.disabled = true;
+                btn.innerHTML = '📊 Analyzing<span class="spinner"></span>';
+
+                const response = await fetch(`http://localhost:8000/api/analysis/descriptive/${currentFileId}`);
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const data = await response.json();
+                const results = document.getElementById('descriptiveResults');
+                results.classList.add('show');
+
+                // Check if data unsuitable
+                if (data.error || !data.statistics) {
+                    results.innerHTML = `
+                        <div class="warning-box">
+                            <strong>⚠ Warning:</strong> ${data.error || 'No numeric columns found in dataset.'}
+                        </div>
+                    `;
+                } else {
+                    // Build stats table
+                    const stats = data.statistics;
+                    let tableHTML = `
+                        <div class="success-box">
+                            <strong>✓ Analysis Complete</strong> - Summary statistics calculated for ${Object.keys(stats).length} numeric columns
+                        </div>
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Column</th>
+                                    <th>Count</th>
+                                    <th>Mean</th>
+                                    <th>Median</th>
+                                    <th>Std Dev</th>
+                                    <th>Min</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    for (const [col, values] of Object.entries(stats)) {
+                        tableHTML += `
+                            <tr>
+                                <td><strong>${col}</strong></td>
+                                <td>${values.count || 'N/A'}</td>
+                                <td>${values.mean?.toFixed(2) || 'N/A'}</td>
+                                <td>${values.median?.toFixed(2) || 'N/A'}</td>
+                                <td>${values.std?.toFixed(2) || 'N/A'}</td>
+                                <td>${values.min?.toFixed(2) || 'N/A'}</td>
+                                <td>${values.max?.toFixed(2) || 'N/A'}</td>
+                            </tr>
+                        `;
+                    }
+
+                    tableHTML += `</tbody></table>`;
+                    results.innerHTML = tableHTML;
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = '📊 Run Descriptive Statistics <span class="tooltip-icon">i<span class="tooltip-text">Calculates count, mean, median, std dev, min, max, and quartiles for all numeric columns</span></span>';
+
+            } catch (error) {
+                console.error('Error:', error);
+                const results = document.getElementById('descriptiveResults');
+                results.classList.add('show');
+                results.innerHTML = '<div class="warning-box"><strong>⚠ Error:</strong> Failed to run analysis. Please try again.</div>';
+
+                const btn = document.getElementById('descriptiveBtn');
+                btn.disabled = false;
+                btn.innerHTML = '📊 Run Descriptive Statistics <span class="tooltip-icon">i<span class="tooltip-text">Calculates count, mean, median, std dev, min, max, and quartiles for all numeric columns</span></span>';
+            }
+        });
+
+        // Crosstab Analysis
+        document.getElementById('crosstabBtn').addEventListener('click', async () => {
+            const catCol = document.getElementById('crosstabCat').value;
+            const numCol = document.getElementById('crosstabNum').value;
+
+            if (!catCol || !numCol) {
+                alert('Please select both columns');
+                return;
+            }
+
+            try {
+                const btn = document.getElementById('crosstabBtn');
+                btn.disabled = true;
+                btn.innerHTML = '🔀 Analyzing<span class="spinner"></span>';
+
+                const response = await fetch(`http://localhost:8000/api/analysis/crosstab/${currentFileId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        categorical_column: catCol,
+                        numeric_column: numCol
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const data = await response.json();
+                const results = document.getElementById('crosstabResults');
+                results.classList.add('show');
+
+                if (data.error) {
+                    results.innerHTML = `
+                        <div class="warning-box">
+                            <strong>⚠ Warning:</strong> ${data.error}
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = `
+                        <div class="success-box">
+                            <strong>✓ Crosstab Complete</strong><br>
+                            Chi-square statistic: ${data.chi2?.toFixed(4) || 'N/A'}<br>
+                            P-value: ${data.p_value?.toFixed(6) || 'N/A'}<br>
+                            ${data.p_value < 0.05 ? '<strong style="color: #28a745;">✓ Statistically significant relationship detected</strong>' : '<strong>No significant relationship found</strong>'}
+                        </div>
+                        <pre style="background: #f8f9fa; padding: 1rem; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.crosstab, null, 2)}</pre>
+                    `;
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = '🔀 Run Crosstab Analysis <span class="tooltip-icon">i<span class="tooltip-text">Performs chi-square test and creates contingency table showing relationships between variables</span></span>';
+
+            } catch (error) {
+                console.error('Error:', error);
+                const results = document.getElementById('crosstabResults');
+                results.classList.add('show');
+                results.innerHTML = '<div class="warning-box"><strong>⚠ Error:</strong> Failed to run analysis. Please try again.</div>';
+
+                const btn = document.getElementById('crosstabBtn');
+                btn.disabled = false;
+                btn.innerHTML = '🔀 Run Crosstab Analysis <span class="tooltip-icon">i<span class="tooltip-text">Performs chi-square test and creates contingency table showing relationships between variables</span></span>';
+            }
+        });
+
+        // Regression Analysis
+        document.getElementById('regressionBtn').addEventListener('click', async () => {
+            const targetCol = document.getElementById('regressionTarget').value;
+            const predictors = document.getElementById('regressionPredictors').value;
+
+            if (!targetCol) {
+                alert('Please select a target variable');
+                return;
+            }
+
+            try {
+                const btn = document.getElementById('regressionBtn');
+                btn.disabled = true;
+                btn.innerHTML = '📉 Analyzing<span class="spinner"></span>';
+
+                const requestBody = { target_column: targetCol };
+                if (predictors.trim()) {
+                    requestBody.predictor_columns = predictors.split(',').map(c => c.trim());
+                }
+
+                const response = await fetch(`http://localhost:8000/api/analysis/regression/${currentFileId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const data = await response.json();
+                const results = document.getElementById('regressionResults');
+                results.classList.add('show');
+
+                if (data.error) {
+                    results.innerHTML = `
+                        <div class="warning-box">
+                            <strong>⚠ Warning:</strong> ${data.error}
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = `
+                        <div class="success-box">
+                            <strong>✓ Regression Complete</strong><br>
+                            Model Type: ${data.model_type || 'Linear Regression'}<br>
+                            R-squared: ${data.r2?.toFixed(4) || 'N/A'}<br>
+                            ${data.r2 > 0.7 ? '<strong style="color: #28a745;">✓ Strong predictive model</strong>' :
+                            data.r2 > 0.4 ? '<strong style="color: #ffc107;">Moderate predictive power</strong>' :
+                                '<strong>Weak predictive power</strong>'}
+                        </div>
+                        <h4>Coefficients:</h4>
+                        <pre style="background: #f8f9fa; padding: 1rem; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.coefficients, null, 2)}</pre>
+                    `;
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = '📉 Run Regression Analysis <span class="tooltip-icon">i<span class="tooltip-text">Performs linear or logistic regression to understand relationships and predict outcomes</span></span>';
+
+            } catch (error) {
+                console.error('Error:', error);
+                const results = document.getElementById('regressionResults');
+                results.classList.add('show');
+                results.innerHTML = '<div class="warning-box"><strong>⚠ Error:</strong> Failed to run analysis. Please try again.</div>';
+
+                const btn = document.getElementById('regressionBtn');
+                btn.disabled = false;
+                btn.innerHTML = '📉 Run Regression Analysis <span class="tooltip-icon">i<span class="tooltip-text">Performs linear or logistic regression to understand relationships and predict outcomes</span></span>';
+            }
+        });
+
+        // Dashboard navigation
+        document.getElementById('dashboardBtn').addEventListener('click', () => {
+            window.location.href = `dashboard.html?file_id=${currentFileId}`;
+        });
+
+        // Load columns on page load
+        loadColumns();
+    </script>
+</body>
+
+</html>

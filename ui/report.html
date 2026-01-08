@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Report - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .report-container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .hero-report {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-report h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-report p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .report-info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+        }
+
+        .report-info-box h3 {
+            color: #856404;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .report-info-box ul {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: #856404;
+        }
+
+        .report-info-box li {
+            margin-bottom: 0.5rem;
+        }
+
+        .tech-note {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: #0c5460;
+        }
+
+        .generate-section {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .report-preview {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+
+        .section-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .check-icon {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .download-card {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .download-card h2 {
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .download-btn {
+            background: white;
+            color: #28a745;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="container">
+        <div class="report-container">
+            <div class="hero-report">
+                <h1>📄 Generate Comprehensive Report</h1>
+                <p>Export all your analysis results into a professional PDF document</p>
+            </div>
+
+            <div class="report-info-box">
+                <h3>📋 What's Included in Your Report</h3>
+                <ul>
+                    <li><strong>Dataset Metadata:</strong> File information, dimensions, and schema details</li>
+                    <li><strong>Data Cleaning Summary:</strong> Missing values handled, outliers treated, quality scores
+                    </li>
+                    <li><strong>Weighting Analysis:</strong> Applied weights and adjustments (if applicable)</li>
+                    <li><strong>Statistical Analysis:</strong> Descriptive statistics, correlations, and distributions
+                    </li>
+                    <li><strong>Cross-tabulation Results:</strong> Chi-square tests and relationship analysis</li>
+                    <li><strong>Regression Models:</strong> Model coefficients, R², and interpretations</li>
+                    <li><strong>ML Insights:</strong> Machine learning predictions and feature importance</li>
+                    <li><strong>Forecasting Results:</strong> Time series predictions and trends</li>
+                    <li><strong>NLQ Questions & Answers:</strong> Your natural language query history</li>
+                    <li><strong>Recommendations:</strong> AI-generated insights and next steps</li>
+                </ul>
+            </div>
+
+            <div class="tech-note">
+                <strong>🔧 Technical Note:</strong> Your PDF report is automatically generated using ReportLab with
+                professional formatting, embedded charts (matplotlib/seaborn), and statistical tables. The generation
+                process typically takes 10-30 seconds depending on data complexity.
+            </div>
+
+            <div class="generate-section">
+                <h2>Ready to Generate?</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Click the button below to compile all your analysis into a downloadable PDF
+                </p>
+                <button id="generateBtn" class="generate-btn">
+                    <span>📊 Generate Report</span>
+                </button>
+                <p id="statusMessage" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></p>
+            </div>
+
+            <div id="reportPreview" class="report-preview">
+                <div class="download-card">
+                    <div class="success-badge">✓ Report Generated Successfully</div>
+                    <h2>Your Report is Ready!</h2>
+                    <p style="margin-bottom: 1.5rem;">Download your comprehensive analysis report below</p>
+                    <a id="downloadLink" class="download-btn" download>
+                        📥 Download PDF Report
+                    </a>
+                </div>
+
+                <h2 style="margin-bottom: 1rem;">📑 Report Sections</h2>
+                <div class="sections-grid">
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Dataset Info</h3>
+                        <p>File metadata and schema</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Data Quality</h3>
+                        <p>Cleaning and validation results</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Weighting</h3>
+                        <p>Survey weights and adjustments</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Statistics</h3>
+                        <p>Descriptive analysis and distributions</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Cross-tabs</h3>
+                        <p>Chi-square and relationship tests</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Regression</h3>
+                        <p>Model results and coefficients</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> ML Insights</h3>
+                        <p>Predictions and feature importance</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Forecasting</h3>
+                        <p>Time series predictions</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> NLQ Q&A</h3>
+                        <p>Natural language query results</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Recommendations</h3>
+                        <p>AI-generated insights</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🎉 What's Next?</h2>
+                    <p style="margin-bottom: 1rem;">Congratulations on completing your analysis! Here are some next
+                        steps:</p>
+                    <ul style="line-height: 1.8;">
+                        <li>📧 Share the PDF report with stakeholders</li>
+                        <li>🔄 Upload a new dataset to start fresh</li>
+                        <li>💬 Ask more questions using Natural Language Query</li>
+                        <li>📊 Run additional analyses on the dashboard</li>
+                    </ul>
+                    <div style="margin-top: 1.5rem;">
+                        <button id="newAnalysisBtn" class="btn btn-primary">
+                            🔄 Start New Analysis
+                        </button>
+                        <button id="backToDashboardBtn" class="btn btn-secondary" style="margin-left: 0.5rem;">
+                            📊 Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script>
+        let currentFileId = null;
+
+        // Get file_id from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        currentFileId = urlParams.get('file_id');
+
+        // If no file_id in URL, check localStorage
+        if (!currentFileId) {
+            currentFileId = localStorage.getItem('currentFileId');
+        }
+
+        if (!currentFileId) {
+            alert('No file ID found. Please upload a file first.');
+            window.location.href = 'index.html';
+        }
+
+        const generateBtn = document.getElementById('generateBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const reportPreview = document.getElementById('reportPreview');
+        const downloadLink = document.getElementById('downloadLink');
+
+        generateBtn.addEventListener('click', generateReport);
+
+        async function generateReport() {
+            try {
+                // Disable button and show loading
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<span class="spinner"></span> Generating Report...';
+                statusMessage.textContent = 'Please wait while we compile your report. This may take up to 30 seconds...';
+                statusMessage.style.color = 'var(--primary-color)';
+
+                const response = await fetch(`http://localhost:8000/api/report/generate/${currentFileId}`, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate report');
+                }
+
+                const data = await response.json();
+
+                // Show success
+                statusMessage.textContent = '✓ Report generated successfully!';
+                statusMessage.style.color = '#28a745';
+
+                // Show preview section
+                reportPreview.style.display = 'block';
+
+                // Set download link
+                if (data.download_url) {
+                    downloadLink.href = `http://localhost:8000${data.download_url}`;
+                    downloadLink.download = data.filename || 'report.pdf';
+                } else if (data.report_path) {
+                    // Alternative: use report_path
+                    downloadLink.href = `http://localhost:8000/static/reports/${data.report_path.split('/').pop()}`;
+                    downloadLink.download = data.report_path.split('/').pop();
+                }
+
+                // Scroll to preview
+                setTimeout(() => {
+                    reportPreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+
+            } catch (error) {
+                console.error('Error:', error);
+                statusMessage.textContent = '❌ Failed to generate report. Please try again.';
+                statusMessage.style.color = '#dc3545';
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<span>📊 Generate Report</span>';
+            }
+        }
+
+        // Navigation buttons
+        document.getElementById('newAnalysisBtn').addEventListener('click', () => {
+            // Clear localStorage and redirect to upload
+            localStorage.removeItem('currentFileId');
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+            window.location.href = `dashboard.html?file_id=${currentFileId}`;
+        });
+    </script>
+</body>
+
+</html>

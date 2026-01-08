@@ -1,0 +1,119 @@
+{
+  "file_id": "5f888f32-d9f0-4a8d-8dea-75af47f01ec3",
+  "operations": [
+    {
+      "step": 1,
+      "operation": "File Upload - survey_data_2025.csv",
+      "timestamp": "2025-01-07T10:30:00",
+      "duration": 2.34,
+      "status": "completed"
+    },
+    {
+      "step": 2,
+      "operation": "Data Validation and Schema Detection",
+      "timestamp": "2025-01-07T10:30:02",
+      "duration": 1.87,
+      "status": "completed"
+    },
+    {
+      "step": 3,
+      "operation": "Missing Value Analysis and Imputation",
+      "timestamp": "2025-01-07T10:30:04",
+      "duration": 5.23,
+      "status": "completed"
+    },
+    {
+      "step": 4,
+      "operation": "Outlier Detection and Treatment (IQR Method)",
+      "timestamp": "2025-01-07T10:30:09",
+      "duration": 3.45,
+      "status": "completed"
+    },
+    {
+      "step": 5,
+      "operation": "Data Cleaning Completed - 569 issues resolved",
+      "timestamp": "2025-01-07T10:30:13",
+      "duration": 0.12,
+      "status": "completed"
+    },
+    {
+      "step": 6,
+      "operation": "Survey Weighting - Base Weights Calculation",
+      "timestamp": "2025-01-07T10:31:00",
+      "duration": 2.56,
+      "status": "completed"
+    },
+    {
+      "step": 7,
+      "operation": "Post-Stratification Adjustment Applied",
+      "timestamp": "2025-01-07T10:31:03",
+      "duration": 1.89,
+      "status": "completed"
+    },
+    {
+      "step": 8,
+      "operation": "Raking Algorithm - 8 iterations to convergence",
+      "timestamp": "2025-01-07T10:31:05",
+      "duration": 4.67,
+      "status": "completed"
+    },
+    {
+      "step": 9,
+      "operation": "Weight Trimming - 23 weights adjusted",
+      "timestamp": "2025-01-07T10:31:10",
+      "duration": 0.89,
+      "status": "completed"
+    },
+    {
+      "step": 10,
+      "operation": "Descriptive Statistics Analysis",
+      "timestamp": "2025-01-07T10:32:00",
+      "duration": 3.21,
+      "status": "completed"
+    },
+    {
+      "step": 11,
+      "operation": "Cross-Tabulation Analysis with Chi-Square Tests",
+      "timestamp": "2025-01-07T10:32:03",
+      "duration": 2.45,
+      "status": "completed"
+    },
+    {
+      "step": 12,
+      "operation": "OLS and Logistic Regression Models",
+      "timestamp": "2025-01-07T10:32:06",
+      "duration": 6.78,
+      "status": "completed"
+    },
+    {
+      "step": 13,
+      "operation": "Time Series Forecasting (SARIMA Model)",
+      "timestamp": "2025-01-07T10:32:13",
+      "duration": 12.34,
+      "status": "completed"
+    },
+    {
+      "step": 14,
+      "operation": "Machine Learning - Random Forest Training",
+      "timestamp": "2025-01-07T10:32:25",
+      "duration": 8.56,
+      "status": "completed"
+    },
+    {
+      "step": 15,
+      "operation": "Automated Insights Generation",
+      "timestamp": "2025-01-07T10:32:34",
+      "duration": 4.23,
+      "status": "completed"
+    },
+    {
+      "step": 16,
+      "operation": "Report Generation Initiated",
+      "timestamp": "2025-01-07T10:40:00",
+      "duration": 0.05,
+      "status": "completed"
+    }
+  ],
+  "total_duration": 70.89,
+  "workflow_status": "completed"
+}

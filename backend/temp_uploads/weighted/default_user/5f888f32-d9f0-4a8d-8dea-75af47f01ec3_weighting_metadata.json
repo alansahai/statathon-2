@@ -1,0 +1,91 @@
+{
+  "file_id": "5f888f32-d9f0-4a8d-8dea-75af47f01ec3",
+  "operations_log": [
+    {
+      "timestamp": "2025-01-07T10:35:00",
+      "operation": "apply_poststrat_weights",
+      "details": {
+        "categories": [
+          "age_group",
+          "gender",
+          "region"
+        ],
+        "method": "post_stratification",
+        "weights_created": 2500
+      }
+    },
+    {
+      "timestamp": "2025-01-07T10:35:15",
+      "operation": "raking",
+      "details": {
+        "method": "raking",
+        "starting_weight_column": "poststrat_weight",
+        "converged": true,
+        "iterations": 8,
+        "final_max_diff": 0.0008,
+        "tolerance": 0.001,
+        "control_margins": [
+          "age_group",
+          "gender",
+          "region",
+          "education"
+        ],
+        "dropped_controls": [],
+        "final_stats": {
+          "min_weight": 0.342,
+          "max_weight": 3.125,
+          "mean_weight": 1.002,
+          "median_weight": 0.987,
+          "std_weight": 0.456
+        }
+      }
+    },
+    {
+      "timestamp": "2025-01-07T10:35:25",
+      "operation": "trim_weights",
+      "details": {
+        "method": "percentile",
+        "lower_bound": 0.35,
+        "upper_bound": 3.0,
+        "weights_trimmed": 23,
+        "trimmed_percentage": 0.92
+      }
+    }
+  ],
+  "diagnostics": {
+    "weight_column": "raked_weight_trimmed",
+    "n_observations": 2500,
+    "mean_weight": 1.0,
+    "median_weight": 0.987,
+    "std_weight": 0.445,
+    "min_weight": 0.35,
+    "max_weight": 3.0,
+    "cv": 0.445,
+    "sum_weights": 2500.0,
+    "effective_sample_size": 2134.5,
+    "design_effect": 1.198,
+    "entropy": 7.723,
+    "entropy_ratio": 0.985,
+    "loss_of_precision": 0.146,
+    "percentiles": {
+      "p1": 0.387,
+      "p5": 0.452,
+      "p10": 0.523,
+      "p25": 0.678,
+      "p50": 0.987,
+      "p75": 1.234,
+      "p90": 1.678,
+      "p95": 2.012,
+      "p99": 2.789
+    }
+  },
+  "final_weight_column": "raked_weight_trimmed",
+  "summary": {
+    "base_weights_applied": true,
+    "poststrat_applied": true,
+    "raking_applied": true,
+    "trimming_applied": true,
+    "effective_sample_size": 2134.5,
+    "design_effect": 1.198
+  }
+}
