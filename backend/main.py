@@ -40,24 +40,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers (cleaning, weighting, and analysis routers already have prefix defined)
-app.include_router(pipeline_router)  # Already has prefix="/api/pipeline" and tag="00 Pipeline"
-app.include_router(upload_router, prefix="/api/upload")  # Tag="01 Upload" already in router
-app.include_router(schema_mapping_router)  # Already has prefix="/api/schema" and tag="02 Schema Mapping"
-app.include_router(cleaning_router)  # Already has prefix="/api/cleaning" and tag="03 Cleaning"
-app.include_router(weighting_router)  # Already has prefix="/api/weighting" and tag="04 Weighting"
-app.include_router(analysis_router)  # Already has prefix="/api/analysis" and tag="05 Analysis"
-app.include_router(forecasting_router)  # Already has prefix="/api/forecasting" and tag="06 Forecasting"
-app.include_router(ml_router)  # Already has prefix="/api/ml" and tag="07 Machine Learning"
-app.include_router(insight_router)  # Already has prefix="/api/insight" and tag="08 Insight Engine"
-app.include_router(nlq_router)  # Already has prefix="/api/nlq" and tag="09 NLQ Engine"
-app.include_router(report_router, prefix="/api/report")  # Tag="10 Report Generation" already in router
+# Include routers (each exactly once)
+app.include_router(pipeline_router)
+app.include_router(upload_router, prefix="/api/upload")
+app.include_router(schema_mapping_router)
+app.include_router(cleaning_router)
+app.include_router(weighting_router)
+app.include_router(analysis_router)
+app.include_router(forecasting_router)
+app.include_router(ml_router)
+app.include_router(insight_router)
+app.include_router(nlq_router)
+app.include_router(report_router, prefix="/api/report")
 app.include_router(estimation_router, prefix="/api/estimation", tags=["Estimation"])
-app.include_router(charts_router)  # Already has prefix="/api/charts" in router definition
-app.include_router(dashboard_router)  # Already has prefix="/api/dashboard" in router definition
-app.include_router(recommendation_router)  # Already has prefix="/api/recommendations" in router definition
-app.include_router(nlq_router)  # Already has prefix="/api/nlq" in router definition
-app.include_router(schema_mapping_router)  # Already has prefix="/api/schema" in router definition
+app.include_router(charts_router)
+app.include_router(dashboard_router)
+app.include_router(recommendation_router)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")

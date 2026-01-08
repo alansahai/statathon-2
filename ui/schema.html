@@ -312,6 +312,9 @@
         };
 
         // Load columns on page load
+        console.log('Current file ID:', currentFileId);
+        console.log('API_BASE:', API_BASE);
+
         if (currentFileId) {
             loadColumns();
         } else {
@@ -321,14 +324,23 @@
         }
 
         async function loadColumns() {
+            console.log('loadColumns called with file_id:', currentFileId);
+            const url = `${API_BASE}/schema/columns/${currentFileId}`;
+            console.log('Fetching from:', url);
+
             try {
-                const response = await fetch(`${API_BASE}/schema/columns/${currentFileId}`);
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                console.log('Response OK:', response.ok);
 
                 if (!response.ok) {
-                    throw new Error('Failed to load columns');
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Failed to load columns: ${response.status} ${errorText}`);
                 }
 
                 const data = await response.json();
+                console.log('Received data:', data);
 
                 // Hide loading, show columns
                 document.getElementById('loadingArea').style.display = 'none';

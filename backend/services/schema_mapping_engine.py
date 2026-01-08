@@ -104,14 +104,27 @@ class SchemaMappingEngine:
         Raises:
             ValueError: If mapping contains invalid types
         """
-        # Valid type options
-        valid_types = ["numeric", "categorical", "datetime"]
+        # Valid type options (including 'auto' for auto-detection)
+        valid_types = ["numeric", "categorical", "datetime", "auto"]
         
-        # Validate mapping
-        invalid_types = []
+        # Auto-detect types if 'auto' is specified
+        processed_mapping = {}
         for col, dtype in mapping_dict.items():
-            if dtype not in valid_types:
-                invalid_types.append(f"{col}: {dtype}")
+            if dtype == "auto":
+                # Auto-detect the type - default to categorical for now
+                # Could be enhanced with actual type detection logic
+                processed_mapping[col] = "categorical"
+            elif dtype in valid_types:
+                processed_mapping[col] = dtype
+            else:
+                # Invalid type
+                processed_mapping[col] = dtype
+        
+        # Validate mapping (after auto-detection)
+        invalid_types = []
+        for col, dtype in processed_mapping.items():
+            if dtype not in ["numeric", "categorical", "datetime"]:
+                invalid_types.append(f"{col}: {mapping_dict[col]}")
         
         if invalid_types:
             raise ValueError(
@@ -120,15 +133,15 @@ class SchemaMappingEngine:
             )
         
         try:
-            # Save mapping to JSON
+            # Save mapping to JSON (use processed_mapping with auto-detected types)
             with open(self.schema_path, 'w', encoding='utf-8') as f:
-                json.dump(mapping_dict, f, indent=2, ensure_ascii=False)
+                json.dump(processed_mapping, f, indent=2, ensure_ascii=False)
             
             return {
                 "status": "success",
-                "message": f"Schema mapping saved for {len(mapping_dict)} columns",
+                "message": f"Schema mapping saved for {len(processed_mapping)} columns",
                 "path": str(self.schema_path),
-                "columns_mapped": len(mapping_dict)
+                "columns_mapped": len(processed_mapping)
             }
         
         except Exception as e:

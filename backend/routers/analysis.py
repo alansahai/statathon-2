@@ -4,7 +4,7 @@ Matches conventions from cleaning.py and weighting.py routers
 """
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, List, Any
 import pandas as pd
 import os
@@ -27,13 +27,24 @@ file_manager = FileManager(base_storage_path="temp_uploads")
 # ==========================================
 
 class DescriptiveStatsRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     columns: List[str]
     weight_column: Optional[str] = None
+    
+    @field_validator('file_ids', mode='before')
+    @classmethod
+    def validate_file_ids(cls, v, info):
+        """Ensure at least one of file_id or file_ids is provided"""
+        file_id = info.data.get('file_id')
+        if not v and not file_id:
+            raise ValueError('Either file_id or file_ids must be provided')
+        return v
 
 
 class CrosstabRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     row_var: str
     col_var: str
     layer_var: Optional[str] = None
@@ -42,7 +53,8 @@ class CrosstabRequest(BaseModel):
 
 
 class RegressionRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     dependent: str
     independents: List[str]
     regression_type: str = "ols"  # "ols" or "logistic"
@@ -50,7 +62,8 @@ class RegressionRequest(BaseModel):
 
 
 class SubgroupRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     group_by: str
     target: str
     metrics: List[str]  # ["mean", "median", "min", "max", "std", "count"]
@@ -149,8 +162,8 @@ async def compute_descriptive_stats(request: DescriptiveStatsRequest):
     - Weighted variants if weight_column provided
     """
     try:
-        # Normalize file_ids (validator ensures this exists)
-        file_ids = request.file_ids
+        # Normalize file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         
         # Validate file_ids
         if not file_ids or len(file_ids) == 0:
@@ -237,7 +250,7 @@ async def create_crosstab(request: CrosstabRequest):
             )
         
         # Normalize file_ids
-        file_ids = request.file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         if not file_ids or len(file_ids) == 0:
             raise HTTPException(status_code=400, detail="No file_ids provided")
         if len(file_ids) > 5:
@@ -874,7 +887,7 @@ async def run_statistical_test(request: StatisticalTestRequest):
     """
     try:
         # Normalize file_ids
-        file_ids = request.file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         if not file_ids or len(file_ids) == 0:
             raise HTTPException(status_code=400, detail="No file_ids provided")
         if len(file_ids) > 5:
@@ -954,7 +967,7 @@ async def auto_select_and_run_test(request: AutoTestRequest):
     """
     try:
         # Normalize file_ids
-        file_ids = request.file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         if not file_ids or len(file_ids) == 0:
             raise HTTPException(status_code=400, detail="No file_ids provided")
         if len(file_ids) > 5:
@@ -1036,7 +1049,7 @@ async def run_welch_anova(request: WelchANOVARequest):
     """
     try:
         # Normalize file_ids
-        file_ids = request.file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         if not file_ids or len(file_ids) == 0:
             raise HTTPException(status_code=400, detail="No file_ids provided")
         if len(file_ids) > 5:
@@ -1127,7 +1140,7 @@ async def run_shapiro_wilk(request: ShapiroWilkRequest):
     """
     try:
         # Normalize file_ids
-        file_ids = request.file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         if not file_ids or len(file_ids) == 0:
             raise HTTPException(status_code=400, detail="No file_ids provided")
         if len(file_ids) > 5:
@@ -1212,7 +1225,7 @@ async def run_tukey_hsd(request: TukeyHSDRequest):
     """
     try:
         # Normalize file_ids
-        file_ids = request.file_ids
+        file_ids = request.file_ids or ([request.file_id] if request.file_id else None)
         if not file_ids or len(file_ids) == 0:
             raise HTTPException(status_code=400, detail="No file_ids provided")
         if len(file_ids) > 5:

@@ -28,7 +28,7 @@ file_manager = FileManager(base_storage_path="temp_uploads")
 class CalculateWeightsRequest(BaseModel):
     file_id: Optional[str] = None
     file_ids: Optional[List[str]] = None
-    method: str  # "base", "poststrat", "raking"
+    method: str = "base"  # Default to "base" - "base", "poststrat", "raking"
     # All other fields are optional - auto-detection handles them
     inclusion_prob_column: Optional[str] = None
     strata_column: Optional[str] = None

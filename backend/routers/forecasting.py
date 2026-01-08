@@ -24,17 +24,17 @@ def _load_dataframe(file_id: str, use_weighted: bool = False) -> pd.DataFrame:
     
     if use_weighted:
         # Try weighted file first
-        weighted_path = file_manager.get_weighted_path(user_id, file_id)
+        weighted_path = file_manager.get_weighted_path(file_id)
         if os.path.exists(weighted_path):
             return pd.read_csv(weighted_path)
     
     # Try cleaned file
-    cleaned_path = file_manager.get_cleaned_path(user_id, file_id)
+    cleaned_path = file_manager.get_cleaned_path(file_id)
     if os.path.exists(cleaned_path):
         return pd.read_csv(cleaned_path)
     
     # Fall back to original upload
-    upload_path = file_manager.get_upload_path(user_id, file_id)
+    upload_path = file_manager.get_upload_path(file_id)
     if os.path.exists(upload_path):
         return pd.read_csv(upload_path)
     

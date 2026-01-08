@@ -1,0 +1,114 @@
+
+================================================================================
+STARTING FULL BACKEND MVP TEST
+================================================================================
+
+================================================================================
+TEST 1 — FILE UPLOAD
+================================================================================
+❌ Upload failed: {"detail":"Not Found"}
+
+================================================================================
+TEST 2 — SCHEMA VALIDATION
+================================================================================
+❌ Schema validation failed: {"detail":"Not Found"}
+
+================================================================================
+TEST 3 — CLEANING ENGINE
+================================================================================
+❌ Cleaning detect-issues failed: {"detail":"No file_ids provided"}
+
+================================================================================
+TEST 4 — WEIGHTING ENGINE
+================================================================================
+❌ Weighting failed: {"detail":[{"type":"missing","loc":["body","method"],"msg":"Field required","input":{"file_id":null,"weight_column":null,"targets":{}}}]}
+
+================================================================================
+TEST 5 — ANALYSIS ENGINE
+================================================================================
+❌ Descriptive stats failed: {"detail":[{"type":"string_type","loc":["body","file_id"],"msg":"Input should be a valid string","input":null}]}
+
+================================================================================
+TEST 6 — FORECASTING ENGINE
+================================================================================
+❌ Forecasting failed: {"detail":[{"type":"value_error","loc":["body","file_ids"],"msg":"Value error, Either file_id or file_ids must be provided","input":null,"ctx":{"error":{}}},{"type":"missing","loc":["body","value_column"],"msg":"Field required","input":{"file_id":null,"time_column":"Date","periods":30}}]}
+
+================================================================================
+TEST 7 — ML ENGINE
+================================================================================
+❌ ML classification failed: {"detail":[{"type":"value_error","loc":["body","file_ids"],"msg":"Value error, Either file_id or file_ids must be provided","input":null,"ctx":{"error":{}}},{"type":"missing","loc":["body","target_column"],"msg":"Field required","input":{"file_id":null,"target":"RainTomorrow","features":[]}}]}
+
+================================================================================
+TEST 8 — INSIGHT ENGINE
+================================================================================
+❌ Insight overview failed: {"detail":"Overview error: 'FileManager' object has no attribute 'get_cleaned_path'"}
+
+================================================================================
+TEST 9 — REPORT GENERATION
+================================================================================
+❌ Report generation failed: {"detail":[{"type":"missing","loc":["body","report_type"],"msg":"Field required","input":{"file_id":null}}]}
+
+================================================================================
+TESTING COMPLETE — Check backend_test_report.txt for results
+================================================================================
+
+================================================================================
+STARTING FULL BACKEND MVP TEST
+================================================================================
+
+================================================================================
+TEST 1 — FILE UPLOAD
+================================================================================
+
+================================================================================
+STARTING FULL BACKEND MVP TEST
+================================================================================
+
+================================================================================
+TEST 1 — FILE UPLOAD
+================================================================================
+❌ Upload failed: {"detail":"Not Found"}
+
+================================================================================
+TEST 2 — SCHEMA VALIDATION
+================================================================================
+❌ Schema validation failed: {"detail":"Not Found"}
+
+================================================================================
+TEST 3 — CLEANING ENGINE
+================================================================================
+❌ Cleaning detect-issues failed: {"detail":"No file_ids provided"}
+
+================================================================================
+TEST 4 — WEIGHTING ENGINE
+================================================================================
+❌ Weighting failed: {"detail":[{"type":"missing","loc":["body","method"],"msg":"Field required","input":{"file_id":null,"weight_column":null,"targets":{}}}]}
+
+================================================================================
+TEST 5 — ANALYSIS ENGINE
+================================================================================
+❌ Descriptive stats failed: {"detail":[{"type":"string_type","loc":["body","file_id"],"msg":"Input should be a valid string","input":null}]}
+
+================================================================================
+TEST 6 — FORECASTING ENGINE
+================================================================================
+❌ Forecasting failed: {"detail":[{"type":"value_error","loc":["body","file_ids"],"msg":"Value error, Either file_id or file_ids must be provided","input":null,"ctx":{"error":{}}},{"type":"missing","loc":["body","value_column"],"msg":"Field required","input":{"file_id":null,"time_column":"Date","periods":30}}]}
+
+================================================================================
+TEST 7 — ML ENGINE
+================================================================================
+❌ ML classification failed: {"detail":[{"type":"value_error","loc":["body","file_ids"],"msg":"Value error, Either file_id or file_ids must be provided","input":null,"ctx":{"error":{}}},{"type":"missing","loc":["body","target_column"],"msg":"Field required","input":{"file_id":null,"target":"RainTomorrow","features":[]}}]}
+
+================================================================================
+TEST 8 — INSIGHT ENGINE
+================================================================================
+❌ Insight overview failed: {"detail":"Overview error: 'FileManager' object has no attribute 'get_cleaned_path'"}
+
+================================================================================
+TEST 9 — REPORT GENERATION
+================================================================================
+❌ Report generation failed: {"detail":[{"type":"missing","loc":["body","report_type"],"msg":"Field required","input":{"file_id":null}}]}
+
+================================================================================
+TESTING COMPLETE — Check backend_test_report.txt for results
+================================================================================

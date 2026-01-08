@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 import zipfile
+import os
 from datetime import datetime
 
 router = APIRouter(tags=["10 Report Generation"])
@@ -15,10 +16,10 @@ router = APIRouter(tags=["10 Report Generation"])
 class ReportRequest(BaseModel):
     file_id: Optional[str] = None
     file_ids: Optional[List[str]] = None
-    report_type: str  # e.g., "full", "summary", "custom"
+    report_type: str = "comprehensive"  # Default: "comprehensive", options: "full", "summary", "custom"
     sections: Optional[List[str]] = None
-    format: str = "pdf"  # pdf, html, docx
-    mode: Optional[str] = "separate"  # "separate" or "combined"
+    format: str = "pdf"  # Default: "pdf", options: "pdf", "html", "docx"
+    mode: str = "single"  # Default: "single", options: "single", "separate", "combined"
 
 @router.post("/generate")
 async def generate_report(request: ReportRequest):
@@ -44,10 +45,14 @@ async def generate_report(request: ReportRequest):
         if len(file_ids) > 5:
             raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Normalize mode
-        mode = request.mode or "separate"
-        if mode not in ["separate", "combined"]:
-            raise HTTPException(status_code=400, detail="Mode must be 'separate' or 'combined'")
+        # Normalize mode - handle both "single" and "separate" for backwards compatibility
+        mode = request.mode
+        if mode not in ["single", "separate", "combined"]:
+            mode = "single"  # Default to single if invalid
+        
+        # Convert "single" to "separate" for processing logic
+        if mode == "single":
+            mode = "separate"
         
         # Process each file
         report_paths = {}
@@ -55,6 +60,19 @@ async def generate_report(request: ReportRequest):
         
         for fid in file_ids:
             try:
+                # Check if cleaned file exists (required for report)
+                from utils.file_manager import FileManager
+                file_manager = FileManager(base_storage_path="temp_uploads")
+                cleaned_path = file_manager.get_cleaned_path(fid)
+                
+                if not os.path.exists(cleaned_path):
+                    errors[fid] = "Cleaned data not found. Please run cleaning step first."
+                    continue
+                
+                # TODO: Check if analysis results exist
+                # TODO: Check if insights exist
+                # For now, we allow report generation even without analysis
+                
                 # TODO: Implement actual report generation
                 # For now, return placeholder response
                 report_path = f"temp_uploads/reports/default_user/{fid}_report.pdf"

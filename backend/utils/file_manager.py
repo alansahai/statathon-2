@@ -406,4 +406,67 @@ class FileManager:
             f"{file_id}_cleaned.csv"
         )
         return cleaned_path if os.path.exists(cleaned_path) else None
+    
+    def get_file_info(self, file_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get file information from registry
+        
+        Args:
+            file_id: File identifier
+            
+        Returns:
+            File info dictionary or None if not found
+        """
+        return self._file_registry.get(file_id)
+    
+    def get_cleaned_path(self, file_id: str) -> str:
+        """
+        Get path to cleaned file
+        
+        Args:
+            file_id: File identifier
+            
+        Returns:
+            Path to cleaned file
+        """
+        cleaned_dir = self.base_storage_path / "cleaned" / "default_user"
+        return str(cleaned_dir / f"{file_id}_cleaned.csv")
+    
+    def get_processed_path(self, file_id: str) -> str:
+        """
+        Get path to processed file
+        
+        Args:
+            file_id: File identifier
+            
+        Returns:
+            Path to processed file
+        """
+        return str(self.processed_dir / f"{file_id}.csv")
+    
+    def get_weighted_path(self, file_id: str) -> str:
+        """
+        Get path to weighted file
+        
+        Args:
+            file_id: File identifier
+            
+        Returns:
+            Path to weighted file
+        """
+        weighted_dir = self.base_storage_path / "weighted" / "default_user"
+        return str(weighted_dir / f"{file_id}_weighted.csv")
+    
+    def get_upload_path(self, file_id: str) -> str:
+        """
+        Get path to uploaded file
+        
+        Args:
+            file_id: File identifier
+            
+        Returns:
+            Path to uploaded file
+        """
+        upload_dir = self.uploads_dir / "default_user"
+        return str(upload_dir / f"{file_id}.csv")
 
