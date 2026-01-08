@@ -573,3 +573,58 @@ class InsightEngine:
         })
         
         return self._make_json_safe(result)
+    
+    @staticmethod
+    def insights_multiple(
+        file_ids: List[str],
+        file_manager: Any,
+        params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate insights for multiple files
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load files
+            params: Optional parameters (time_column, value_column, group_column)
+            
+        Returns:
+            Dictionary mapping file_id to insights:
+            {
+                "<file_id>": {"insights": {...}, "status": "ok"},
+                "<file_id>": {"error": "..."}
+            }
+        """
+        results = {}
+        params = params or {}
+        
+        for file_id in file_ids:
+            try:
+                # Load file
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                df = file_manager.load_dataframe(file_path)
+                
+                # Initialize engine for this file
+                engine = InsightEngine(df)
+                
+                # Generate insights
+                insights = engine.generate_full_insights(
+                    time_column=params.get("time_column"),
+                    value_column=params.get("value_column"),
+                    group_column=params.get("group_column")
+                )
+                
+                results[file_id] = {
+                    "insights": insights,
+                    "operations_log": engine.operations_log,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

@@ -2810,3 +2810,82 @@ class AnalysisEngine:
             return self._make_json_safe(obj.tolist())
         else:
             return obj
+    
+    @staticmethod
+    def analyze_multiple(
+        file_ids: List[str],
+        file_manager: Any,
+        analysis_type: str,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Perform analysis on multiple files
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load files
+            analysis_type: Type of analysis ("descriptive", "crosstab", "regression", etc.)
+            params: Parameters for the analysis
+            
+        Returns:
+            Dictionary mapping file_id to analysis results:
+            {
+                "<file_id>": {"result": {...}, "status": "ok"},
+                "<file_id>": {"error": "..."}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Load file
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                df = file_manager.load_dataframe(file_path)
+                
+                # Initialize engine for this file
+                engine = AnalysisEngine(df)
+                
+                # Perform analysis based on type
+                if analysis_type == "descriptive":
+                    result = engine.descriptive_stats(
+                        columns=params.get("columns", []),
+                        weight_column=params.get("weight_column")
+                    )
+                elif analysis_type == "crosstab":
+                    result = engine.crosstab(
+                        row_var=params.get("row_var"),
+                        col_var=params.get("col_var"),
+                        weight_column=params.get("weight_column"),
+                        normalize=params.get("normalize", "all")
+                    )
+                elif analysis_type == "regression":
+                    result = engine.ols_regression(
+                        dependent_var=params.get("dependent_var"),
+                        independent_vars=params.get("independent_vars", []),
+                        weight_column=params.get("weight_column")
+                    )
+                elif analysis_type == "subgroup":
+                    result = engine.subgroup_analysis(
+                        metric_column=params.get("metric_column"),
+                        group_column=params.get("group_column"),
+                        weight_column=params.get("weight_column"),
+                        aggregation=params.get("aggregation", "mean")
+                    )
+                else:
+                    results[file_id] = {"error": f"Unknown analysis type: {analysis_type}"}
+                    continue
+                
+                results[file_id] = {
+                    "result": result,
+                    "operations_log": engine.operations_log,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

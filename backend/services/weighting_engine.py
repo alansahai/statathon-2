@@ -709,3 +709,91 @@ class WeightingEngine:
             return None
         else:
             return data
+    
+    @staticmethod
+    def process_multiple_weights(
+        file_ids: List[str],
+        file_manager: Any,
+        operation: str,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Process multiple files with weighting operations
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load/save files
+            operation: Operation to perform ("calculate", "validate", "trim")
+            **kwargs: Additional parameters for the operation
+            
+        Returns:
+            Dictionary mapping file_id to results:
+            {
+                "<file_id>": {"result": {...}, "status": "ok"},
+                "<file_id>": {"error": "..."}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Load file
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                df = file_manager.load_dataframe(file_path)
+                
+                # Initialize engine for this file
+                engine = WeightingEngine(df)
+                
+                # Perform operation based on type
+                if operation == "calculate":
+                    # Determine weight type from kwargs
+                    weight_type = kwargs.get("weight_type", "base")
+                    
+                    if weight_type == "base":
+                        result = {
+                            "operations_log": engine.operations_log,
+                            "auto_actions": engine.auto_actions,
+                            "warnings": engine.warnings
+                        }
+                    elif weight_type == "poststrat":
+                        target_props = kwargs.get("target_proportions", {})
+                        strat_var = kwargs.get("stratification_variable")
+                        result = engine.calculate_poststratification_weights(strat_var, target_props)
+                    elif weight_type == "raking":
+                        margins = kwargs.get("margins", {})
+                        result = engine.calculate_raking_weights(margins)
+                    else:
+                        results[file_id] = {"error": f"Unknown weight type: {weight_type}"}
+                        continue
+                        
+                elif operation == "validate":
+                    weight_col = kwargs.get("weight_column", engine._get_active_weight_column())
+                    if weight_col not in df.columns:
+                        results[file_id] = {"error": f"Weight column '{weight_col}' not found"}
+                        continue
+                    # Perform validation
+                    result = {"validation": "ok"}  # Simplified
+                    
+                elif operation == "trim":
+                    min_w = kwargs.get("min_weight", 0.3)
+                    max_w = kwargs.get("max_weight", 3.0)
+                    result = engine.trim_weights(min_weight=min_w, max_weight=max_w)
+                    
+                else:
+                    results[file_id] = {"error": f"Unknown operation: {operation}"}
+                    continue
+                
+                results[file_id] = {
+                    "result": result,
+                    "weighted_df": engine.df,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

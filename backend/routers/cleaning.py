@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
 import pandas as pd
 import os
 from pathlib import Path
@@ -11,7 +12,7 @@ from utils.schema_validator import SchemaValidator
 
 router = APIRouter(
     prefix="/api/cleaning",
-    tags=["Cleaning"]
+    tags=["03 Cleaning"]
 )
 
 file_manager = FileManager(base_storage_path="temp_uploads")
@@ -23,18 +24,21 @@ schema_validator = SchemaValidator()
 # -----------------------------
 
 class ManualCleanRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     range_rules: dict | None = None
     regex_rules: dict | None = None
     conditional_rules: list | None = None
 
 
 class AutoCleanRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
 
 
 class DetectIssuesRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
 
 
 # -----------------------------
@@ -44,146 +48,238 @@ class DetectIssuesRequest(BaseModel):
 
 @router.post("/detect-issues")
 async def detect_issues(req: DetectIssuesRequest):
-    # Try to get from registry first, if not found, construct path
-    file_path = file_manager.get_file_path(req.file_id)
+    # Normalize file_ids
+    file_ids = req.file_ids or ([req.file_id] if req.file_id else None)
     
-    if not file_path:
-        # Construct path: temp_uploads/uploads/default_user/file_id.csv
-        user_dir = file_manager.uploads_dir / "default_user"
-        file_path = user_dir / f"{req.file_id}.csv"
-        
-        # Also try .xlsx extension if csv not found
-        if not file_path.exists():
-            file_path = user_dir / f"{req.file_id}.xlsx"
+    if not file_ids or len(file_ids) == 0:
+        raise HTTPException(status_code=400, detail="No file_ids provided")
+    if len(file_ids) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
+    
+    # Process each file
+    results_per_file = {}
+    errors = {}
+    
+    for fid in file_ids:
+        try:
+            # Try to get from registry first, if not found, construct path
+            file_path = file_manager.get_file_path(fid)
             
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        file_path = str(file_path)
+            if not file_path:
+                # Construct path: temp_uploads/uploads/default_user/file_id.csv
+                user_dir = file_manager.uploads_dir / "default_user"
+                file_path = user_dir / f"{fid}.csv"
+                
+                # Also try .xlsx extension if csv not found
+                if not file_path.exists():
+                    file_path = user_dir / f"{fid}.xlsx"
+                    
+                if not file_path.exists():
+                    errors[fid] = "File not found"
+                    continue
+                
+                file_path = str(file_path)
 
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+            if not os.path.exists(file_path):
+                errors[fid] = "File not found"
+                continue
 
-    # Use file_manager to load dataframe with proper encoding handling
-    try:
-        df = file_manager.load_dataframe(file_path)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to load file: {str(e)}")
+            # Use file_manager to load dataframe with proper encoding handling
+            try:
+                df = file_manager.load_dataframe(file_path)
+            except Exception as e:
+                errors[fid] = f"Failed to load file: {str(e)}"
+                continue
 
-    engine = CleaningEngine(df)
+            engine = CleaningEngine(df)
+            issues = engine.detect_issues()
 
-    issues = engine.detect_issues()
-
-    return {
-        "status": "success",
-        "file_id": req.file_id,
-        "issues": issues
+            results_per_file[fid] = {"issues": issues}
+            
+        except Exception as e:
+            errors[fid] = str(e)
+    
+    # Determine status
+    status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+    
+    response = {
+        "status": status,
+        "file_ids": file_ids,
+        "results": results_per_file
     }
+    
+    if errors:
+        response["errors"] = errors
+    
+    return response
 
 
 @router.post("/auto-clean")
 async def auto_clean(req: AutoCleanRequest):
-    file_path = file_manager.get_file_path(req.file_id)
-
-    if not file_path:
-        user_dir = file_manager.uploads_dir / "default_user"
-        file_path = user_dir / f"{req.file_id}.csv"
-        if not file_path.exists():
-            file_path = user_dir / f"{req.file_id}.xlsx"
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        file_path = str(file_path)
-
-    try:
-        df = file_manager.load_dataframe(file_path)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to load file: {str(e)}")
+    # Normalize file_ids
+    file_ids = req.file_ids or ([req.file_id] if req.file_id else None)
     
-    # Apply schema mapping if configured
-    mapping_engine = SchemaMappingEngine(req.file_id)
-    mapping = mapping_engine.load_mapping()
-    if mapping:
-        df = mapping_engine.apply_mapping(df, mapping)
+    if not file_ids or len(file_ids) == 0:
+        raise HTTPException(status_code=400, detail="No file_ids provided")
+    if len(file_ids) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
+    
+    # Process each file
+    results_per_file = {}
+    errors = {}
+    
+    for fid in file_ids:
+        try:
+            file_path = file_manager.get_file_path(fid)
 
-    engine = CleaningEngine(df)
+            if not file_path:
+                user_dir = file_manager.uploads_dir / "default_user"
+                file_path = user_dir / f"{fid}.csv"
+                if not file_path.exists():
+                    file_path = user_dir / f"{fid}.xlsx"
+                if not file_path.exists():
+                    errors[fid] = "File not found"
+                    continue
+                file_path = str(file_path)
 
-    # Perform automatic cleaning
-    summary = engine.auto_clean()
+            try:
+                df = file_manager.load_dataframe(file_path)
+            except Exception as e:
+                errors[fid] = f"Failed to load file: {str(e)}"
+                continue
+            
+            # Apply schema mapping if configured
+            mapping_engine = SchemaMappingEngine(fid)
+            mapping = mapping_engine.load_mapping()
+            if mapping:
+                df = mapping_engine.apply_mapping(df, mapping)
 
-    # Get cleaned dataframe from engine
-    cleaned_df = engine.df
+            engine = CleaningEngine(df)
 
-    # Save cleaned version
-    cleaned_path = file_manager.save_cleaned_file(cleaned_df, req.file_id)
+            # Perform automatic cleaning
+            summary = engine.auto_clean()
 
-    return {
-        "status": "success",
+            # Get cleaned dataframe from engine
+            cleaned_df = engine.df
+
+            # Save cleaned version
+            cleaned_path = file_manager.save_cleaned_file(cleaned_df, fid)
+
+            results_per_file[fid] = {
+                "cleaned_file_path": cleaned_path,
+                "summary": summary
+            }
+            
+        except Exception as e:
+            errors[fid] = str(e)
+    
+    # Determine status
+    status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+    
+    response = {
+        "status": status,
         "message": "Auto cleaning completed",
-        "file_id": req.file_id,
-        "cleaned_file_path": cleaned_path,
-        "summary": summary
+        "file_ids": file_ids,
+        "results": results_per_file
     }
+    
+    if errors:
+        response["errors"] = errors
+    
+    return response
 
 
 @router.post("/manual-clean")
 async def manual_clean(req: ManualCleanRequest):
-    # Try to get from registry first, if not found, construct path
-    file_path = file_manager.get_file_path(req.file_id)
+    # Normalize file_ids
+    file_ids = req.file_ids or ([req.file_id] if req.file_id else None)
     
-    if not file_path:
-        # Construct path: temp_uploads/uploads/default_user/file_id.csv
-        user_dir = file_manager.uploads_dir / "default_user"
-        file_path = user_dir / f"{req.file_id}.csv"
-        
-        # Also try .xlsx extension if csv not found
-        if not file_path.exists():
-            file_path = user_dir / f"{req.file_id}.xlsx"
+    if not file_ids or len(file_ids) == 0:
+        raise HTTPException(status_code=400, detail="No file_ids provided")
+    if len(file_ids) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
+    
+    # Process each file
+    results_per_file = {}
+    errors = {}
+    
+    for fid in file_ids:
+        try:
+            # Try to get from registry first, if not found, construct path
+            file_path = file_manager.get_file_path(fid)
             
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        file_path = str(file_path)
+            if not file_path:
+                # Construct path: temp_uploads/uploads/default_user/file_id.csv
+                user_dir = file_manager.uploads_dir / "default_user"
+                file_path = user_dir / f"{fid}.csv"
+                
+                # Also try .xlsx extension if csv not found
+                if not file_path.exists():
+                    file_path = user_dir / f"{fid}.xlsx"
+                    
+                if not file_path.exists():
+                    errors[fid] = "File not found"
+                    continue
+                
+                file_path = str(file_path)
 
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+            if not os.path.exists(file_path):
+                errors[fid] = "File not found"
+                continue
 
-    # Use file_manager to load dataframe with proper encoding handling
-    try:
-        df = file_manager.load_dataframe(file_path)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to load file: {str(e)}")
+            # Use file_manager to load dataframe with proper encoding handling
+            try:
+                df = file_manager.load_dataframe(file_path)
+            except Exception as e:
+                errors[fid] = f"Failed to load file: {str(e)}"
+                continue
+            
+            # Apply schema mapping if configured
+            mapping_engine = SchemaMappingEngine(fid)
+            mapping = mapping_engine.load_mapping()
+            if mapping:
+                df = mapping_engine.apply_mapping(df, mapping)
+
+            engine = CleaningEngine(df)
+
+            # Apply rules
+            rules = {
+                "range_rules": req.range_rules,
+                "regex_rules": req.regex_rules,
+                "conditional_rules": req.conditional_rules
+            }
+
+            issue_summary = engine.detect_issues()
+            rules_summary = engine.apply_rules(rules)
+            outlier_summary = engine.detect_outliers()
+            cleaned_df = engine.fix_outliers()
+
+            cleaned_path = file_manager.save_cleaned_file(cleaned_df, fid)
+
+            results_per_file[fid] = {
+                "cleaned_file_path": cleaned_path,
+                "issue_summary": issue_summary,
+                "rules_summary": rules_summary,
+                "outlier_summary": outlier_summary
+            }
+            
+        except Exception as e:
+            errors[fid] = str(e)
     
-    # Apply schema mapping if configured
-    mapping_engine = SchemaMappingEngine(req.file_id)
-    mapping = mapping_engine.load_mapping()
-    if mapping:
-        df = mapping_engine.apply_mapping(df, mapping)
-
-    engine = CleaningEngine(df)
-
-    # Apply rules
-    rules = {
-        "range_rules": req.range_rules,
-        "regex_rules": req.regex_rules,
-        "conditional_rules": req.conditional_rules
-    }
-
-    issue_summary = engine.detect_issues()
-    rules_summary = engine.apply_rules(rules)
-    outlier_summary = engine.detect_outliers()
-    cleaned_df = engine.fix_outliers()
-
-    cleaned_path = file_manager.save_cleaned_file(cleaned_df, req.file_id)
-
-    return {
-        "status": "success",
+    # Determine status
+    status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+    
+    response = {
+        "status": status,
         "message": "Manual cleaning completed",
-        "file_id": req.file_id,
-        "cleaned_file_path": cleaned_path,
-        "issue_summary": issue_summary,
-        "rules_summary": rules_summary,
-        "outlier_summary": outlier_summary
+        "file_ids": file_ids,
+        "results": results_per_file
     }
+    
+    if errors:
+        response["errors"] = errors
+    
+    return response
 
 
 @router.get("/summary/{file_id}")

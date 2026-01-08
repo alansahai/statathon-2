@@ -272,7 +272,11 @@
 </head>
 
 <body>
-    <div id="navbar-container"></div>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
 
     <div class="container">
         <div class="analysis-container">
@@ -414,29 +418,35 @@
     </div>
 
     <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script src="assets/charts.js"></script>
     <script>
-        let currentFileId = null;
+        let allFileIds = [];
         let availableColumns = [];
 
-        // Get file_id from URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        currentFileId = urlParams.get('file_id');
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get file IDs from localStorage
+            allFileIds = ApiService.getFileIds();
 
-        // If no file_id in URL, check localStorage
-        if (!currentFileId) {
-            currentFileId = localStorage.getItem('currentFileId');
-        }
+            if (allFileIds.length === 0) {
+                showToastError('No files loaded. Redirecting to upload page...');
+                setTimeout(() => window.location.href = 'index.html', 2000);
+                return;
+            }
 
-        if (!currentFileId) {
-            alert('No file ID found. Please upload a file first.');
-            window.location.href = 'index.html';
-        }
+            // Show file info
+            PipelineService.displayFileInfo();
+
+            await loadColumns();
+            displayFileResults();
+        });
 
         // Load columns
         async function loadColumns() {
             try {
-                const response = await fetch(`http://localhost:8000/api/schema/columns/${currentFileId}`);
-                const data = await response.json();
+                const firstFileId = allFileIds[0];
+                const data = await ApiService.getColumns(firstFileId);
                 availableColumns = data.columns || [];
 
                 // Display columns list
@@ -674,10 +684,108 @@
             }
         });
 
+        // Display file results with collapsible sections
+        function displayFileResults() {
+            const container = document.getElementById('analysisResults') || createResultsContainer();
+
+            let html = '<h2 class="mb-4">📊 Analysis Results by File</h2>';
+
+            allFileIds.forEach((fileId, index) => {
+                html += createCollapsible(
+                    `File ${index + 1} - Results`,
+                    `
+                        <div id="charts-${index}"></div>
+                        <div class="flex gap-2 mt-4">
+                            <button class="btn btn-primary btn-sm" onclick="loadChartsForFile(${index})">
+                                📊 Load Charts
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="runStatsForFile('${fileId}', ${index})">
+                                📈 Run Stats
+                            </button>
+                        </div>
+                    `,
+                    index === 0
+                );
+            });
+
+            html += `
+                <div class="flex justify-between mt-6">
+                    <button class="btn btn-outline" onclick="PipelineService.goToPreviousStep('analysis.html')">
+                        ← Back
+                    </button>
+                    <button class="btn btn-success" onclick="PipelineService.goToNextStep('analysis.html')">
+                        Continue →
+                    </button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Reinitialize accordions after adding HTML
+            if (typeof initAccordions === 'function') {
+                initAccordions();
+            }
+        }
+
+        function createResultsContainer() {
+            const main = document.querySelector('.container');
+            const container = document.createElement('div');
+            container.id = 'analysisResults';
+            container.className = 'mt-6';
+            main.appendChild(container);
+            return container;
+        }
+
+        // Create collapsible accordion section
+        function createCollapsible(title, content, isOpen = false) {
+            return `
+                <div class="accordion">
+                    <div class="accordion-header ${isOpen ? 'active' : ''}">
+                        ${title}
+                    </div>
+                    <div class="accordion-body ${isOpen ? 'open' : ''}">
+                        <div class="accordion-content">
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load charts for a specific file
+        async function loadChartsForFile(index) {
+            const fileId = allFileIds[index];
+            const container = document.getElementById(`charts-${index}`);
+
+            // Mock chart paths - replace with actual API response
+            const charts = {
+                histogram: `static/charts/${fileId}_histogram.png`,
+                boxplot: `static/charts/${fileId}_boxplot.png`,
+                scatterplot: `static/charts/${fileId}_scatter.png`,
+                heatmap: `static/charts/${fileId}_heatmap.png`
+            };
+
+            ChartService.createChartGallery(charts, `charts-${index}`);
+        }
+
+        // Run stats for specific file
+        async function runStatsForFile(fileId, index) {
+            try {
+                showLoader('Running analysis...');
+                const result = await ApiService.runDescriptiveStats([fileId], availableColumns.slice(0, 5));
+                hideLoader();
+                showToastSuccess(`Analysis complete for File ${index + 1}`);
+            } catch (error) {
+                hideLoader();
+                showToastError('Error running analysis: ' + error.message);
+            }
+        }
+
         // Dashboard navigation
-        document.getElementById('dashboardBtn').addEventListener('click', () => {
-            window.location.href = `dashboard.html?file_id=${currentFileId}`;
+        document.getElementById('dashboardBtn')?.addEventListener('click', () => {
+            window.location.href = 'dashboard.html';
         });
+
 
         // Load columns on page load
         loadColumns();

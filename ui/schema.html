@@ -205,7 +205,11 @@
 </head>
 
 <body>
-    <div id="navbar-container"></div>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
 
     <div class="container">
         <div class="schema-container">
@@ -287,6 +291,7 @@
 
     <script src="assets/app.js"></script>
     <script>
+        const API_BASE = "http://127.0.0.1:8000/api";
         let currentFileId = null;
 
         // Get file_id from URL parameter
@@ -317,7 +322,7 @@
 
         async function loadColumns() {
             try {
-                const response = await fetch(`http://localhost:8000/api/schema/columns/${currentFileId}`);
+                const response = await fetch(`${API_BASE}/schema/columns/${currentFileId}`);
 
                 if (!response.ok) {
                     throw new Error('Failed to load columns');
@@ -380,7 +385,7 @@
                     mapping[column] = select.value;
                 });
 
-                const response = await fetch(`http://localhost:8000/api/schema/save/${currentFileId}`, {
+                const response = await fetch(`${API_BASE}/schema/save/${currentFileId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mapping })
@@ -413,7 +418,7 @@
                     mapping[column] = select.value;
                 });
 
-                await fetch(`http://localhost:8000/api/schema/save/${currentFileId}`, {
+                await fetch(`${API_BASE}/schema/save/${currentFileId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mapping })
@@ -423,7 +428,7 @@
                 document.getElementById('statusMessage').innerHTML =
                     `<p class="info">⏳ Applying data types...</p>`;
 
-                const response = await fetch(`http://localhost:8000/api/schema/apply/${currentFileId}`, {
+                const response = await fetch(`${API_BASE}/schema/apply/${currentFileId}`, {
                     method: 'POST'
                 });
 
@@ -438,6 +443,9 @@
 
                 // Save to localStorage
                 localStorage.setItem('currentFileId', currentFileId);
+
+                // Mark step complete
+                markStepComplete('schema');
 
                 // Redirect to cleaning page
                 setTimeout(() => {

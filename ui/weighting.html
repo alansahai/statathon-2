@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey Weighting - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <div class="hero text-center mb-6">
+            <h1>⚖️ Survey Weighting</h1>
+            <p>Calculate and validate survey weights for representative analysis</p>
+        </div>
+
+        <!-- File Info -->
+        <div class="file-info"></div>
+
+        <!-- Progress Container -->
+        <div class="progress-container" style="display: none;">
+            <div class="progress">
+                <div class="progress-bar" style="width: 0%">0%</div>
+            </div>
+            <p class="progress-text">Initializing...</p>
+        </div>
+
+        <!-- Weighting Method Selection -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Select Weighting Method</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="weighting-method">Method:</label>
+                    <select id="weighting-method" class="form-control">
+                        <option value="raking">Raking (Iterative Proportional Fitting)</option>
+                        <option value="post-stratification">Post-Stratification</option>
+                        <option value="propensity">Propensity Score Weighting</option>
+                    </select>
+                </div>
+
+                <button id="calculate-weights-btn" class="btn btn-primary mt-3">
+                    ⚖️ Calculate Weights
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="results-container"></div>
+
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p class="mt-3">Calculating weights...</p>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Validate files loaded
+            if (!PipelineService.validateFileIds()) return;
+            PipelineService.displayFileInfo();
+        });
+
+        // Calculate Weights
+        document.getElementById('calculate-weights-btn').addEventListener('click', async () => {
+            try {
+                showLoader('Calculating weights...');
+                showProgress();
+                setProgress(20, 'Calculating weights...');
+
+                const method = document.getElementById('weighting-method').value;
+                const fileIds = ApiService.getFileIds();
+
+                // Calculate weights for all files
+                const results = await ApiService.calculateWeights(null, method, {});
+
+                setProgress(70, 'Validating weights...');
+
+                // Validate weights
+                const validation = await ApiService.validateWeights();
+
+                setProgress(90, 'Trimming extreme weights...');
+
+                // Trim weights
+                await ApiService.trimWeights(null, 0.3, 3.0);
+
+                setProgress(100, 'Complete!');
+                hideLoader();
+                hideProgress();
+
+                showToastSuccess('Weights calculated successfully!');
+                displayResults(results, validation, fileIds);
+
+            } catch (error) {
+                console.error('Weighting error:', error);
+                hideLoader();
+                hideProgress();
+                showToastError('Error calculating weights: ' + error.message);
+            }
+        });
+
+        // Display Results
+        function displayResults(results, validation, fileIds) {
+            const container = document.getElementById('results-container');
+            let html = '';
+
+            fileIds.forEach((fileId, index) => {
+                const fileResult = results.results ? results.results[fileId] : {};
+                const valResult = validation.results ? validation.results[fileId] : {};
+
+                const deff = valResult.deff || 'N/A';
+                const ess = valResult.ess || 'N/A';
+                const cv = valResult.cv || 'N/A';
+
+                html += `
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3>File ${index + 1} - Weighting Results</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-cols-3 gap-4 mb-4">
+                                <div class="text-center p-4 bg-blue-50 rounded">
+                                    <div class="text-3xl font-bold text-blue-600">${deff}</div>
+                                    <div class="text-sm text-gray-600">DEFF (Design Effect)</div>
+                                </div>
+                                <div class="text-center p-4 bg-green-50 rounded">
+                                    <div class="text-3xl font-bold text-green-600">${ess}</div>
+                                    <div class="text-sm text-gray-600">ESS (Effective Sample Size)</div>
+                                </div>
+                                <div class="text-center p-4 bg-yellow-50 rounded">
+                                    <div class="text-3xl font-bold text-yellow-600">${cv}%</div>
+                                    <div class="text-sm text-gray-600">CV (Coefficient of Variation)</div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="downloadWeightedFile('${fileId}', ${index})">
+                                    📥 Download Weighted CSV
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="downloadTrimmedFile('${fileId}', ${index})">
+                                    📥 Download Trimmed CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                <div class="flex justify-between mt-6">
+                    <button class="btn btn-outline" onclick="PipelineService.goToPreviousStep('weighting.html')">
+                        ← Back to Cleaning
+                    </button>
+                    <button class="btn btn-success" onclick="PipelineService.goToNextStep('weighting.html')">
+                        Continue to Analysis →
+                    </button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Download weighted file
+        function downloadWeightedFile(fileId, index) {
+            const url = `${ApiService.API_BASE}/../temp_uploads/weighted/default_user/${fileId}_weighted.csv`;
+            downloadFile(url, `file_${index + 1}_weighted.csv`);
+        }
+
+        // Download trimmed file
+        function downloadTrimmedFile(fileId, index) {
+            const url = `${ApiService.API_BASE}/../temp_uploads/weighted/default_user/${fileId}_weighted_trimmed.csv`;
+            downloadFile(url, `file_${index + 1}_weighted_trimmed.csv`);
+        }
+    </script>
+</body>
+
+</html>

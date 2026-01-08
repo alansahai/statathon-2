@@ -235,7 +235,11 @@
 </head>
 
 <body>
-    <div id="navbar-container"></div>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
 
     <div class="container">
         <div class="cleaning-container">
@@ -322,52 +326,155 @@
     </div>
 
     <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
     <script>
-        let currentFileId = null;
+        let allFileIds = [];
 
-        // Get file_id from URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        currentFileId = urlParams.get('file_id');
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get file IDs from localStorage
+            allFileIds = ApiService.getFileIds();
 
-        // If no file_id in URL, check localStorage
-        if (!currentFileId) {
-            currentFileId = localStorage.getItem('currentFileId');
-        }
-
-        if (!currentFileId) {
-            document.getElementById('statusMessage').innerHTML = `
-                <div class="card">
-                    <p class="error">❌ No file ID found. Please <a href="index.html">upload a file</a> first.</p>
-                </div>
-            `;
-        }
-
-        // Detect Issues
-        document.getElementById('detectBtn').addEventListener('click', async () => {
-            if (!currentFileId) {
-                alert('Please upload a file first');
+            if (allFileIds.length === 0) {
+                showToastError('No files loaded. Redirecting to upload page...');
+                setTimeout(() => window.location.href = 'index.html', 2000);
                 return;
             }
 
+            // Show file info
+            PipelineService.displayFileInfo();
+
+            // Display file list with controls
+            displayFileList();
+        });
+
+        // Display file list with buttons
+        function displayFileList() {
+            const container = document.getElementById('fileListContainer') || createFileListContainer();
+
+            container.innerHTML = '<h3 class="mb-3">Select Actions for Each File:</h3>';
+
+            allFileIds.forEach((fileId, index) => {
+                const fileCard = document.createElement('div');
+                fileCard.className = 'card mb-3';
+                fileCard.innerHTML = `
+                    <div class="card-header">
+                        <h4>File ${index + 1}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="flex gap-2 mb-3">
+                            <button class="btn btn-primary btn-sm" onclick="detectIssues('${fileId}', ${index})">
+                                🔍 Detect Issues
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="autoClean('${fileId}', ${index})">
+                                ✨ Auto Clean
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="downloadCleaned('${fileId}', ${index})">
+                                📥 Download Cleaned
+                            </button>
+                        </div>
+                        <div id="result-${index}" class="mt-3"></div>
+                    </div>
+                `;
+                container.appendChild(fileCard);
+            });
+
+            // Add continue button
+            const navDiv = document.createElement('div');
+            navDiv.className = 'flex justify-between mt-6';
+            navDiv.innerHTML = `
+                <button class="btn btn-outline" onclick="PipelineService.goToPreviousStep('cleaning.html')">
+                    ← Back to Schema
+                </button>
+                <button class="btn btn-success" onclick="PipelineService.goToNextStep('cleaning.html')">
+                    Continue to Weighting →
+                </button>
+            `;
+            container.appendChild(navDiv);
+        }
+
+        function createFileListContainer() {
+            const existing = document.getElementById('cleaningResults');
+            if (existing) {
+                const container = document.createElement('div');
+                container.id = 'fileListContainer';
+                existing.parentNode.insertBefore(container, existing);
+                existing.style.display = 'none';
+                return container;
+            }
+            return null;
+        }
+
+        // Detect Issues
+        async function detectIssues(fileId, index) {
             try {
-                const btn = document.getElementById('detectBtn');
-                btn.disabled = true;
-                btn.innerHTML = '🔍 Detecting Issues<span class="spinner"></span>';
+                showLoader('Detecting issues...');
+                const result = await ApiService.detectIssues([fileId]);
+                hideLoader();
 
-                const response = await fetch('http://localhost:8000/api/cleaning/detect-issues', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_id: currentFileId })
-                });
+                const issues = result.results[fileId];
+                let html = '<div class="alert alert-info"><strong>Issues Detected:</strong>';
+                html += `<ul>`;
+                if (issues.missing_values > 0) html += `<li>Missing values: ${issues.missing_values}</li>`;
+                if (issues.outliers > 0) html += `<li>Outliers: ${issues.outliers}</li>`;
+                if (issues.duplicates > 0) html += `<li>Duplicates: ${issues.duplicates}</li>`;
+                html += `</ul></div>`;
 
-                if (!response.ok) {
-                    throw new Error('Detection failed');
-                }
+                document.getElementById(`result-${index}`).innerHTML = html;
+                showToastSuccess('Issues detected for File ' + (index + 1));
+            } catch (error) {
+                hideLoader();
+                showToastError('Error detecting issues: ' + error.message);
+            }
+        }
 
-                const data = await response.json();
+        // Auto Clean
+        async function autoClean(fileId, index) {
+            try {
+                showLoader('Cleaning data...');
+                const result = await ApiService.autoClean([fileId]);
+                hideLoader();
 
-                // Build issues table
-                let tableHTML = `
+                const cleanResult = result.results[fileId];
+                let html = '<div class="alert alert-success"><strong>Cleaning Complete:</strong>';
+                html += `<ul>`;
+                html += `<li>Rows processed: ${cleanResult.rows_processed || 'N/A'}</li>`;
+                html += `<li>Issues fixed: ${cleanResult.issues_fixed || 'N/A'}</li>`;
+                html += `</ul></div>`;
+
+                document.getElementById(`result-${index}`).innerHTML = html;
+                showToastSuccess('File ' + (index + 1) + ' cleaned successfully!');
+            } catch (error) {
+                hideLoader();
+                showToastError('Error cleaning: ' + error.message);
+            }
+        }
+
+        // Download Cleaned File
+        function downloadCleaned(fileId, index) {
+            const url = `${ApiService.API_BASE}/../temp_uploads/cleaned/default_user/${fileId}_cleaned.csv`;
+            downloadFile(url, `file_${index + 1}_cleaned.csv`);
+        }
+
+        try {
+            const btn = document.getElementById('detectBtn');
+            btn.disabled = true;
+            btn.innerHTML = '🔍 Detecting Issues<span class="spinner"></span>';
+
+            const response = await fetch('http://localhost:8000/api/cleaning/detect-issues', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id: currentFileId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Detection failed');
+            }
+
+            const data = await response.json();
+
+            // Build issues table
+            let tableHTML = `
                     <table class="issues-table">
                         <thead>
                             <tr>
@@ -380,25 +487,25 @@
                         <tbody>
                 `;
 
-                const issues = data.issues || data;
-                let totalMissing = 0;
-                let totalOutliers = 0;
+            const issues = data.issues || data;
+            let totalMissing = 0;
+            let totalOutliers = 0;
 
-                for (const [column, info] of Object.entries(issues)) {
-                    const missingCount = info.missing_count || 0;
-                    const outlierCount = info.outlier_count || 0;
+            for (const [column, info] of Object.entries(issues)) {
+                const missingCount = info.missing_count || 0;
+                const outlierCount = info.outlier_count || 0;
 
-                    totalMissing += missingCount;
-                    totalOutliers += outlierCount;
+                totalMissing += missingCount;
+                totalOutliers += outlierCount;
 
-                    let statusBadge = '<span class="issue-badge success">✓ Clean</span>';
-                    if (missingCount > 0 || outlierCount > 0) {
-                        statusBadge = missingCount > 10 || outlierCount > 10
-                            ? '<span class="issue-badge danger">⚠ Needs Cleaning</span>'
-                            : '<span class="issue-badge warning">⚠ Minor Issues</span>';
-                    }
+                let statusBadge = '<span class="issue-badge success">✓ Clean</span>';
+                if (missingCount > 0 || outlierCount > 0) {
+                    statusBadge = missingCount > 10 || outlierCount > 10
+                        ? '<span class="issue-badge danger">⚠ Needs Cleaning</span>'
+                        : '<span class="issue-badge warning">⚠ Minor Issues</span>';
+                }
 
-                    tableHTML += `
+                tableHTML += `
                         <tr>
                             <td><strong>${column}</strong></td>
                             <td>${missingCount > 0 ? `<span style="color: #dc3545;">${missingCount}</span>` : '0'}</td>
@@ -406,9 +513,9 @@
                             <td>${statusBadge}</td>
                         </tr>
                     `;
-                }
+            }
 
-                tableHTML += `
+            tableHTML += `
                         </tbody>
                     </table>
                     <div class="summary-box" style="background: #e7f3ff; border-left-color: var(--primary-color);">
@@ -426,20 +533,20 @@
                     </div>
                 `;
 
-                document.getElementById('issuesResults').innerHTML = tableHTML;
+            document.getElementById('issuesResults').innerHTML = tableHTML;
 
-                btn.disabled = false;
-                btn.innerHTML = '🔍 Detect Issues <span class="tooltip-icon">i<span class="tooltip-text">Analyzes each column for missing values (empty cells) and outliers (extreme values outside normal range)</span></span>';
+            btn.disabled = false;
+            btn.innerHTML = '🔍 Detect Issues <span class="tooltip-icon">i<span class="tooltip-text">Analyzes each column for missing values (empty cells) and outliers (extreme values outside normal range)</span></span>';
 
-            } catch (error) {
-                console.error('Detection error:', error);
-                document.getElementById('issuesResults').innerHTML =
-                    '<p class="error">❌ Error detecting issues. Please try again.</p>';
+        } catch (error) {
+            console.error('Detection error:', error);
+            document.getElementById('issuesResults').innerHTML =
+                '<p class="error">❌ Error detecting issues. Please try again.</p>';
 
-                const btn = document.getElementById('detectBtn');
-                btn.disabled = false;
-                btn.innerHTML = '🔍 Detect Issues <span class="tooltip-icon">i<span class="tooltip-text">Analyzes each column for missing values (empty cells) and outliers (extreme values outside normal range)</span></span>';
-            }
+            const btn = document.getElementById('detectBtn');
+            btn.disabled = false;
+            btn.innerHTML = '🔍 Detect Issues <span class="tooltip-icon">i<span class="tooltip-text">Analyzes each column for missing values (empty cells) and outliers (extreme values outside normal range)</span></span>';
+        }
         });
 
         // Auto Clean
@@ -510,6 +617,7 @@
 
         // Continue to Analysis
         document.getElementById('continueBtn').addEventListener('click', () => {
+            markStepComplete('cleaning');
             window.location.href = `analysis.html?file_id=${currentFileId}`;
         });
     </script>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .insight-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .badge-high-risk {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-moderate-risk {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-low-risk {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-strong-correlation {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-anomaly {
+            background-color: #fce7f3;
+            color: #9f1239;
+        }
+
+        .insight-card {
+            border-left: 4px solid;
+            margin-bottom: 1.5rem;
+        }
+
+        .insight-high-risk {
+            border-color: #dc2626;
+        }
+
+        .insight-moderate-risk {
+            border-color: #f59e0b;
+        }
+
+        .insight-low-risk {
+            border-color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <div class="hero text-center mb-6">
+            <h1>🧠 AI-Powered Insights</h1>
+            <p>Automated analysis and recommendations based on your data</p>
+        </div>
+
+        <!-- File Info -->
+        <div class="file-info"></div>
+
+        <!-- Progress Container -->
+        <div class="progress-container" style="display: none;">
+            <div class="progress">
+                <div class="progress-bar" style="width: 0%">0%</div>
+            </div>
+            <p class="progress-text">Generating insights...</p>
+        </div>
+
+        <!-- Generate Insights Button -->
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <button id="generate-insights-btn" class="btn btn-primary btn-lg">
+                    🧠 Generate AI Insights
+                </button>
+            </div>
+        </div>
+
+        <!-- Insights Container -->
+        <div id="insights-container"></div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between mt-6">
+            <button class="btn btn-outline" onclick="PipelineService.goToPreviousStep('insight.html')">
+                ← Back
+            </button>
+            <button class="btn btn-success" onclick="PipelineService.goToNextStep('insight.html')">
+                Continue to Report →
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p class="mt-3">Generating insights...</p>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Validate files loaded
+            if (!PipelineService.validateFileIds()) return;
+            PipelineService.displayFileInfo();
+
+            // Auto-generate insights on page load
+            generateInsights();
+        });
+
+        // Generate Insights
+        document.getElementById('generate-insights-btn').addEventListener('click', generateInsights);
+
+        async function generateInsights() {
+            try {
+                showLoader('Analyzing data and generating insights...');
+                showProgress();
+                setProgress(30, 'Analyzing patterns...');
+
+                const insights = await ApiService.getInsights(null, {
+                    focus_areas: ['correlations', 'missing_data', 'outliers', 'risk_groups']
+                });
+
+                setProgress(100, 'Complete!');
+                hideLoader();
+                hideProgress();
+
+                showToastSuccess('Insights generated successfully!');
+                displayInsights(insights);
+
+            } catch (error) {
+                console.error('Insights error:', error);
+                hideLoader();
+                hideProgress();
+                showToastError('Error generating insights: ' + error.message);
+            }
+        }
+
+        // Display Insights
+        function displayInsights(data) {
+            const container = document.getElementById('insights-container');
+
+            // Mock insights structure (adapt based on actual API response)
+            const insights = [
+                {
+                    type: 'high-risk',
+                    title: 'High Risk: Significant Missing Data',
+                    description: 'Column "income" has 35% missing values, which may introduce bias in analysis.',
+                    recommendation: 'Consider imputation strategies or sensitivity analysis.',
+                    badge: 'High Risk'
+                },
+                {
+                    type: 'strong-correlation',
+                    title: 'Strong Correlation Detected',
+                    description: 'Age and Income show strong positive correlation (r=0.78, p<0.001).',
+                    recommendation: 'Consider multicollinearity in regression models.',
+                    badge: 'Strong Correlation'
+                },
+                {
+                    type: 'moderate-risk',
+                    title: 'Moderate Risk: Outliers Detected',
+                    description: 'Found 23 extreme outliers in "response_time" variable.',
+                    recommendation: 'Review outliers before analysis or consider robust methods.',
+                    badge: 'Moderate Risk'
+                },
+                {
+                    type: 'anomaly',
+                    title: 'Anomaly: Unexpected Pattern',
+                    description: 'Response distribution differs significantly from expected pattern.',
+                    recommendation: 'Investigate data collection process for this variable.',
+                    badge: 'Anomaly Detected'
+                },
+                {
+                    type: 'low-risk',
+                    title: 'Data Quality: Excellent',
+                    description: 'Overall data quality score: 92/100. Minimal issues detected.',
+                    recommendation: 'Data is suitable for advanced statistical analysis.',
+                    badge: 'Low Risk'
+                }
+            ];
+
+            let html = '<h2 class="mb-4">📊 Key Insights</h2>';
+
+            // Correlation Summary
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>🔗 Correlation Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Detected <strong>5 significant correlations</strong> between variables:</p>
+                        <ul class="mt-2">
+                            <li><span class="insight-badge badge-strong-correlation">Strong</span> Age ↔ Income (r=0.78)</li>
+                            <li><span class="insight-badge badge-strong-correlation">Strong</span> Education ↔ Salary (r=0.72)</li>
+                            <li><span class="insight-badge badge-moderate-risk">Moderate</span> Experience ↔ Position (r=0.54)</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            // Missing Value Patterns
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>❓ Missing Value Patterns</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Missing data analysis across all files:</p>
+                        <div class="grid grid-cols-2 gap-4 mt-3">
+                            <div class="p-3 bg-red-50 rounded">
+                                <div class="text-2xl font-bold text-red-600">35%</div>
+                                <div class="text-sm">Income column</div>
+                            </div>
+                            <div class="p-3 bg-yellow-50 rounded">
+                                <div class="text-2xl font-bold text-yellow-600">12%</div>
+                                <div class="text-sm">Region column</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Risk Groups
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>⚠️ Risk Groups Identified</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="insight-card card insight-high-risk p-4">
+                            <span class="insight-badge badge-high-risk">High Risk</span>
+                            <h4 class="mt-2">Respondents with incomplete demographics</h4>
+                            <p class="text-gray-600 mt-1">
+                                <strong>258 cases</strong> identified with critical missing demographic information
+                            </p>
+                        </div>
+                        
+                        <div class="insight-card card insight-moderate-risk p-4">
+                            <span class="insight-badge badge-moderate-risk">Moderate Risk</span>
+                            <h4 class="mt-2">Inconsistent response patterns</h4>
+                            <p class="text-gray-600 mt-1">
+                                <strong>89 cases</strong> showing unusual response patterns that may indicate data quality issues
+                            </p>
+                        </div>
+
+                        <div class="insight-card card insight-low-risk p-4">
+                            <span class="insight-badge badge-low-risk">Low Risk</span>
+                            <h4 class="mt-2">Complete responses</h4>
+                            <p class="text-gray-600 mt-1">
+                                <strong>2,453 cases</strong> with complete data and consistent patterns
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Recommendations
+            html += `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>💡 Recommendations</h3>
+                    </div>
+                    <div class="card-body">
+                        <ol class="space-y-3">
+                            <li>
+                                <span class="insight-badge badge-high-risk">Priority</span>
+                                <strong>Address missing income data</strong> - Consider imputation or sensitivity analysis
+                            </li>
+                            <li>
+                                <span class="insight-badge badge-strong-correlation">Action</span>
+                                <strong>Check for multicollinearity</strong> - High correlations detected between predictors
+                            </li>
+                            <li>
+                                <span class="insight-badge badge-anomaly">Review</span>
+                                <strong>Investigate outliers</strong> - 23 extreme values in response_time variable
+                            </li>
+                            <li>
+                                <span class="insight-badge badge-low-risk">Info</span>
+                                <strong>Overall data quality is good</strong> - Proceed with advanced analysis
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

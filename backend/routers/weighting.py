@@ -15,7 +15,7 @@ from utils.file_manager import FileManager
 
 router = APIRouter(
     prefix="/api/weighting",
-    tags=["Weighting"]
+    tags=["04 Weighting"]
 )
 
 file_manager = FileManager(base_storage_path="temp_uploads")
@@ -26,7 +26,8 @@ file_manager = FileManager(base_storage_path="temp_uploads")
 # -----------------------------
 
 class CalculateWeightsRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     method: str  # "base", "poststrat", "raking"
     # All other fields are optional - auto-detection handles them
     inclusion_prob_column: Optional[str] = None
@@ -38,12 +39,14 @@ class CalculateWeightsRequest(BaseModel):
 
 
 class ValidateWeightsRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     weight_column: Optional[str] = None
 
 
 class TrimWeightsRequest(BaseModel):
-    file_id: str
+    file_id: Optional[str] = None
+    file_ids: Optional[List[str]] = None
     min_w: float = 0.3
     max_w: float = 3.0
     weight_column: Optional[str] = None
@@ -67,108 +70,126 @@ async def calculate_weights(req: CalculateWeightsRequest):
     Returns detailed results with auto-actions and warnings
     """
     try:
-        # Load file with fallback path logic
-        file_path = file_manager.get_file_path(req.file_id)
+        # Normalize file_ids
+        file_ids = req.file_ids or ([req.file_id] if req.file_id else None)
         
-        if not file_path:
-            user_dir = file_manager.uploads_dir / "default_user"
-            file_path = user_dir / f"{req.file_id}.csv"
-            
-            if not file_path.exists():
-                file_path = user_dir / f"{req.file_id}.xlsx"
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
+        
+        # Process each file
+        results_per_file = {}
+        errors = {}
+        
+        for fid in file_ids:
+            try:
+                # Load file with fallback path logic
+                file_path = file_manager.get_file_path(fid)
                 
-            if not file_path.exists():
-                raise HTTPException(status_code=404, detail="File not found")
-            
-            file_path = str(file_path)
+                if not file_path:
+                    user_dir = file_manager.uploads_dir / "default_user"
+                    file_path = user_dir / f"{fid}.csv"
+                    
+                    if not file_path.exists():
+                        file_path = user_dir / f"{fid}.xlsx"
+                        
+                    if not file_path.exists():
+                        errors[fid] = "File not found"
+                        continue
+                    
+                    file_path = str(file_path)
+                
+                if not os.path.exists(file_path):
+                    errors[fid] = "File not found"
+                    continue
+                
+                # Load DataFrame
+                df = file_manager.load_dataframe(file_path)
+                
+                # Initialize weighting engine (auto-creates base weights)
+                engine = WeightingEngine(df)
+                
+                # Execute weighting method
+                result = {}
+                
+                if req.method == "base":
+                    log_entry = engine.calculate_base_weights(req.inclusion_prob_column)
+                    result = {
+                        "method": "base",
+                        "log_entry": log_entry,
+                        "summary": log_entry["details"]["summary"]
+                    }
+                    
+                elif req.method == "poststrat":
+                    _, log_entry = engine.apply_poststrat_weights(
+                        req.strata_column,
+                        req.population_totals
+                    )
+                    result = {
+                        "method": "poststrat",
+                        "log_entry": log_entry,
+                        "summary": log_entry["details"]
+                    }
+                    
+                elif req.method == "raking":
+                    if not req.control_totals:
+                        errors[fid] = "control_totals required for raking method"
+                        continue
+                    
+                    log_entry = engine.raking(
+                        req.control_totals,
+                        max_iterations=req.max_iterations,
+                        tolerance=req.tolerance
+                    )
+                    result = {
+                        "method": "raking",
+                        "log_entry": log_entry,
+                        "summary": log_entry["details"]
+                    }
+                    
+                else:
+                    errors[fid] = f"Invalid method '{req.method}'. Use 'base', 'poststrat', or 'raking'"
+                    continue
+                
+                # Save weighted file
+                weighted_dir = file_manager.base_storage_path / "weighted" / "default_user"
+                weighted_dir.mkdir(parents=True, exist_ok=True)
+                
+                weighted_path = weighted_dir / f"{fid}_weighted.csv"
+                engine.export_weighted(str(weighted_path))
+                
+                # Build comprehensive response
+                results_per_file[fid] = engine.make_json_safe({
+                    "method": req.method,
+                    "result": result,
+                    "weighted_file_path": str(weighted_path),
+                    "auto_actions": engine.get_auto_actions(),
+                    "warnings": engine.get_warnings(),
+                    "operations_log": engine.get_operations_log()
+                })
+                
+            except Exception as e:
+                errors[fid] = str(e)
         
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="File not found")
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        # Load DataFrame
-        df = file_manager.load_dataframe(file_path)
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
+        }
         
-        # Initialize weighting engine (auto-creates base weights)
-        engine = WeightingEngine(df)
-        
-        # Execute weighting method
-        result = {}
-        
-        if req.method == "base":
-            log_entry = engine.calculate_base_weights(req.inclusion_prob_column)
-            result = {
-                "method": "base",
-                "log_entry": log_entry,
-                "summary": log_entry["details"]["summary"]
-            }
-            
-        elif req.method == "poststrat":
-            _, log_entry = engine.apply_poststrat_weights(
-                req.strata_column,
-                req.population_totals
-            )
-            result = {
-                "method": "poststrat",
-                "log_entry": log_entry,
-                "summary": log_entry["details"]
-            }
-            
-        elif req.method == "raking":
-            if not req.control_totals:
-                # Return error only if truly no input provided
-                raise HTTPException(
-                    status_code=400,
-                    detail="control_totals required for raking method"
-                )
-            
-            log_entry = engine.raking(
-                req.control_totals,
-                max_iterations=req.max_iterations,
-                tolerance=req.tolerance
-            )
-            result = {
-                "method": "raking",
-                "log_entry": log_entry,
-                "summary": log_entry["details"]
-            }
-            
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid method '{req.method}'. Use 'base', 'poststrat', or 'raking'"
-            )
-        
-        # Save weighted file
-        weighted_dir = file_manager.base_storage_path / "weighted" / "default_user"
-        weighted_dir.mkdir(parents=True, exist_ok=True)
-        
-        weighted_path = weighted_dir / f"{req.file_id}_weighted.csv"
-        engine.export_weighted(str(weighted_path))
-        
-        # Build comprehensive response
-        response = engine.make_json_safe({
-            "status": "success",
-            "file_id": req.file_id,
-            "weighted_file_path": str(weighted_path),
-            "method": req.method,
-            "result": result,
-            "auto_actions": engine.get_auto_actions(),
-            "warnings": engine.get_warnings(),
-            "operations_log": engine.get_operations_log()
-        })
+        if errors:
+            response["errors"] = errors
         
         return response
         
     except HTTPException:
         raise
     except Exception as e:
-        # Never return 400 for data issues - return 200 with warnings
-        return {
-            "status": "partial_success",
-            "error": str(e),
-            "message": "Weighting completed with errors",
-            "file_id": req.file_id
-        }
+        raise HTTPException(status_code=500, detail=f"Weight calculation failed: {str(e)}")
 
 
 @router.post("/validate")
@@ -184,78 +205,103 @@ async def validate_weights(req: ValidateWeightsRequest):
     - Distribution characteristics
     """
     try:
-        # Load weighted file
-        weighted_dir = file_manager.base_storage_path / "weighted" / "default_user"
-        weighted_path = weighted_dir / f"{req.file_id}_weighted.csv"
+        # Normalize file_ids
+        file_ids = req.file_ids or ([req.file_id] if req.file_id else None)
         
-        if not weighted_path.exists():
-            raise HTTPException(status_code=404, detail="Weighted file not found. Run /calculate first.")
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        df = file_manager.load_dataframe(str(weighted_path))
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Initialize engine for auto-detection
-        engine = WeightingEngine(df)
+        for fid in file_ids:
+            try:
+                # Load weighted file
+                weighted_dir = file_manager.base_storage_path / "weighted" / "default_user"
+                weighted_path = weighted_dir / f"{fid}_weighted.csv"
+                
+                if not weighted_path.exists():
+                    errors[fid] = "Weighted file not found. Run /calculate first."
+                    continue
+                
+                df = file_manager.load_dataframe(str(weighted_path))
+                
+                # Initialize engine for auto-detection
+                engine = WeightingEngine(df)
+                
+                # Auto-detect weight column
+                weight_column = req.weight_column
+                if weight_column is None:
+                    weight_column = engine._get_active_weight_column()
+                
+                if weight_column not in df.columns:
+                    errors[fid] = f"Weight column '{weight_column}' not found"
+                    continue
+                
+                weights = df[weight_column].copy()
+                
+                # Validation checks
+                problems = []
+                
+                # Check for NaN
+                if weights.isna().any():
+                    nan_count = int(weights.isna().sum())
+                    problems.append(f"Contains {nan_count} NaN values")
+                
+                # Check for zeros
+                if (weights == 0).any():
+                    zero_count = int((weights == 0).sum())
+                    problems.append(f"Contains {zero_count} zero values")
+                
+                # Check for negatives
+                if (weights < 0).any():
+                    neg_count = int((weights < 0).sum())
+                    problems.append(f"Contains {neg_count} negative values")
+                
+                # Check for infinite
+                if np.isinf(weights).any():
+                    inf_count = int(np.isinf(weights).sum())
+                    problems.append(f"Contains {inf_count} infinite values")
+                
+                # Get clean weights for statistics
+                clean_weights = weights.replace([np.inf, -np.inf], np.nan).dropna()
+                
+                validation_result = {
+                    "status": "pass" if len(problems) == 0 else "fail",
+                    "weight_column": weight_column,
+                    "problems": problems,
+                    "n_observations": int(len(weights)),
+                    "n_valid": int(len(clean_weights)),
+                    "statistics": {
+                        "min": float(clean_weights.min()) if len(clean_weights) > 0 else None,
+                        "max": float(clean_weights.max()) if len(clean_weights) > 0 else None,
+                        "mean": float(clean_weights.mean()) if len(clean_weights) > 0 else None,
+                        "median": float(clean_weights.median()) if len(clean_weights) > 0 else None,
+                        "std": float(clean_weights.std()) if len(clean_weights) > 0 else None
+                    }
+                }
+                
+                results_per_file[fid] = WeightingEngine.make_json_safe({"validation": validation_result})
+                
+            except Exception as e:
+                errors[fid] = str(e)
         
-        # Auto-detect weight column
-        if req.weight_column is None:
-            req.weight_column = engine._get_active_weight_column()
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        if req.weight_column not in df.columns:
-            return {
-                "status": "error",
-                "file_id": req.file_id,
-                "message": f"Weight column '{req.weight_column}' not found",
-                "available_columns": [col for col in df.columns if 'weight' in col.lower()]
-            }
-        
-        weights = df[req.weight_column].copy()
-        
-        # Validation checks
-        problems = []
-        
-        # Check for NaN
-        if weights.isna().any():
-            nan_count = int(weights.isna().sum())
-            problems.append(f"Contains {nan_count} NaN values")
-        
-        # Check for zeros
-        if (weights == 0).any():
-            zero_count = int((weights == 0).sum())
-            problems.append(f"Contains {zero_count} zero values")
-        
-        # Check for negatives
-        if (weights < 0).any():
-            neg_count = int((weights < 0).sum())
-            problems.append(f"Contains {neg_count} negative values")
-        
-        # Check for infinite
-        if np.isinf(weights).any():
-            inf_count = int(np.isinf(weights).sum())
-            problems.append(f"Contains {inf_count} infinite values")
-        
-        # Get clean weights for statistics
-        clean_weights = weights.replace([np.inf, -np.inf], np.nan).dropna()
-        
-        validation_result = {
-            "status": "pass" if len(problems) == 0 else "fail",
-            "weight_column": req.weight_column,
-            "problems": problems,
-            "n_observations": int(len(weights)),
-            "n_valid": int(len(clean_weights)),
-            "statistics": {
-                "min": float(clean_weights.min()) if len(clean_weights) > 0 else None,
-                "max": float(clean_weights.max()) if len(clean_weights) > 0 else None,
-                "mean": float(clean_weights.mean()) if len(clean_weights) > 0 else None,
-                "median": float(clean_weights.median()) if len(clean_weights) > 0 else None,
-                "std": float(clean_weights.std()) if len(clean_weights) > 0 else None
-            }
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-        return WeightingEngine.make_json_safe({
-            "status": "success",
-            "file_id": req.file_id,
-            "validation": validation_result
-        })
+        if errors:
+            response["errors"] = errors
+        
+        return response
         
     except HTTPException:
         raise
@@ -275,47 +321,73 @@ async def trim_weights(req: TrimWeightsRequest):
     Caps weights at minimum and maximum thresholds
     """
     try:
-        # Load weighted file
-        weighted_dir = file_manager.base_storage_path / "weighted" / "default_user"
-        weighted_path = weighted_dir / f"{req.file_id}_weighted.csv"
+        # Normalize file_ids
+        file_ids = req.file_ids or ([req.file_id] if req.file_id else None)
         
-        if not weighted_path.exists():
-            raise HTTPException(status_code=404, detail="Weighted file not found. Run /calculate first.")
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        df = file_manager.load_dataframe(str(weighted_path))
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Initialize engine
-        engine = WeightingEngine(df)
+        for fid in file_ids:
+            try:
+                # Load weighted file
+                weighted_dir = file_manager.base_storage_path / "weighted" / "default_user"
+                weighted_path = weighted_dir / f"{fid}_weighted.csv"
+                
+                if not weighted_path.exists():
+                    errors[fid] = "Weighted file not found. Run /calculate first."
+                    continue
+                
+                df = file_manager.load_dataframe(str(weighted_path))
+                
+                # Initialize engine
+                engine = WeightingEngine(df)
+                
+                # Trim weights (auto-detects column, handles NaN/Inf)
+                summary = engine.trim_weights(
+                    min_w=req.min_w,
+                    max_w=req.max_w,
+                    weight_column=req.weight_column
+                )
+                
+                # Save trimmed file
+                trimmed_path = weighted_dir / f"{fid}_weighted_trimmed.csv"
+                engine.export_weighted(str(trimmed_path))
+                
+                results_per_file[fid] = engine.make_json_safe({
+                    "trimmed_file_path": str(trimmed_path),
+                    "summary": summary,
+                    "auto_actions": engine.get_auto_actions(),
+                    "warnings": engine.get_warnings(),
+                    "operations_log": engine.get_operations_log()
+                })
+                
+            except Exception as e:
+                errors[fid] = str(e)
         
-        # Trim weights (auto-detects column, handles NaN/Inf)
-        summary = engine.trim_weights(
-            min_w=req.min_w,
-            max_w=req.max_w,
-            weight_column=req.weight_column
-        )
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        # Save trimmed file
-        trimmed_path = weighted_dir / f"{req.file_id}_weighted_trimmed.csv"
-        engine.export_weighted(str(trimmed_path))
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
+        }
         
-        return engine.make_json_safe({
-            "status": "success",
-            "file_id": req.file_id,
-            "trimmed_file_path": str(trimmed_path),
-            "summary": summary,
-            "auto_actions": engine.get_auto_actions(),
-            "warnings": engine.get_warnings(),
-            "operations_log": engine.get_operations_log()
-        })
+        if errors:
+            response["errors"] = errors
+        
+        return response
         
     except HTTPException:
         raise
     except Exception as e:
-        return {
-            "status": "error",
-            "file_id": req.file_id,
-            "message": f"Trimming failed: {str(e)}"
-        }
+        raise HTTPException(status_code=500, detail=f"Trimming failed: {str(e)}")
 
 
 @router.get("/diagnostics/{file_id}")

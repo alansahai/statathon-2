@@ -6,583 +6,478 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - StatFlow AI</title>
     <link rel="stylesheet" href="assets/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .dashboard-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
         }
 
         .hero-dashboard {
             text-align: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, #17a2b8, #138496);
-            color: white;
-            border-radius: 8px;
-            margin-bottom: 2rem;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
         }
 
         .hero-dashboard h1 {
-            color: white;
+            font-size: 2.5rem;
             margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-600), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .hero-dashboard p {
-            color: rgba(255, 255, 255, 0.9);
+        .hero-dashboard .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
         }
 
-        .info-grid {
+        .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
-        .info-card {
-            background: #e8f4fd;
+        .stat-card {
+            background: var(--card-bg);
             padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid var(--primary-color);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.4s ease;
         }
 
-        .info-card h4 {
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent);
         }
 
-        .info-card p {
-            color: var(--text-color);
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .recent-files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            background: var(--hover-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: var(--gray-200);
+            transform: translateX(4px);
+            border-color: var(--accent);
+        }
+
+        body.dark-mode .file-item:hover {
+            background: var(--gray-700);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.35rem;
             font-size: 0.95rem;
-            margin: 0;
         }
 
-        .kpi-grid {
+        .file-id {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .file-timestamp {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .badge {
+            padding: 0.35rem 0.875rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-uploaded {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .badge-schema {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-cleaned {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-weighted {
+            background: #e9d5ff;
+            color: #6b21a8;
+        }
+
+        .badge-analysis {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-forecast {
+            background: #ccfbf1;
+            color: #115e59;
+        }
+
+        .badge-ml {
+            background: #fce7f3;
+            color: #9f1239;
+        }
+
+        .badge-report {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        body.dark-mode .badge-uploaded {
+            background: #374151;
+            color: #e5e7eb;
+        }
+
+        body.dark-mode .badge-schema {
+            background: #1e3a8a;
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .badge-cleaned {
+            background: #78350f;
+            color: #fef3c7;
+        }
+
+        body.dark-mode .badge-weighted {
+            background: #581c87;
+            color: #e9d5ff;
+        }
+
+        body.dark-mode .badge-analysis {
+            background: #064e3b;
+            color: #d1fae5;
+        }
+
+        body.dark-mode .badge-forecast {
+            background: #134e4a;
+            color: #ccfbf1;
+        }
+
+        body.dark-mode .badge-ml {
+            background: #881337;
+            color: #fce7f3;
+        }
+
+        body.dark-mode .badge-report {
+            background: #713f12;
+            color: #fef9c3;
+        }
+
+        .progress-widget {
+            margin: 2rem 0;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: var(--gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        body.dark-mode .progress-bar-container {
+            background: var(--gray-700);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            border-radius: var(--radius-full);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1rem;
+            gap: 0.75rem;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--text);
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            background: var(--hover-bg);
+        }
+
+        .action-icon {
+            font-size: 2.5rem;
+        }
+
+        .action-label {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .mini-charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .kpi-card {
-            background: linear-gradient(135deg, var(--primary-color), #2c6ba8);
-            color: white;
-            padding: 2rem;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: transform 0.3s;
-        }
-
-        .kpi-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .kpi-label {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            margin-bottom: 0.75rem;
-            opacity: 0.9;
-        }
-
-        .kpi-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin: 0;
-        }
-
-        .kpi-subtitle {
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            opacity: 0.8;
-        }
-
-        .risk-section {
-            background: white;
-            border-radius: 8px;
-            padding: 2rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-        }
-
-        .risk-list {
-            display: grid;
             gap: 1rem;
-            margin-top: 1rem;
         }
 
-        .risk-item {
-            display: flex;
-            align-items: start;
-            gap: 1rem;
-            padding: 1rem;
-            border-radius: 8px;
-            border-left: 4px solid;
+        .mini-chart {
+            background: var(--hover-bg);
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
         }
 
-        .risk-item.high {
-            background: #f8d7da;
-            border-color: #dc3545;
+        .mini-chart:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
         }
 
-        .risk-item.medium {
-            background: #fff3cd;
-            border-color: #ffc107;
-        }
-
-        .risk-item.low {
-            background: #d1ecf1;
-            border-color: #17a2b8;
-        }
-
-        .risk-icon {
-            font-size: 1.5rem;
-            min-width: 30px;
-        }
-
-        .risk-content h4 {
-            margin: 0 0 0.5rem 0;
-            color: var(--text-color);
-        }
-
-        .risk-content p {
-            margin: 0;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .risk-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
+        .mini-chart-title {
+            font-size: 0.875rem;
             font-weight: 600;
-            margin-left: 0.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .risk-badge.high {
-            background: #dc3545;
-            color: white;
+        .mini-chart-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
         }
 
-        .risk-badge.medium {
-            background: #ffc107;
-            color: #212529;
-        }
-
-        .risk-badge.low {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .chart-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-        }
-
-        .chart-wrapper {
-            position: relative;
-            height: 400px;
-            margin-top: 1rem;
-        }
-
-        .loading-overlay {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 3rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(26, 84, 144, 0.2);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        .mini-chart-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
         }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
         }
 
         .empty-state-icon {
             font-size: 4rem;
             margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            margin: 0.5rem 0;
+        }
+
+        .empty-state .btn {
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .mini-charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mini-charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+
+            .hero-dashboard h1 {
+                font-size: 2rem;
+            }
+
+            .file-item {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div id="navbar-container"></div>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
 
-    <div class="container">
-        <div class="dashboard-container">
-            <div class="hero-dashboard">
-                <h1>📊 Analytics Dashboard</h1>
-                <p>Monitor data quality, trends, and key performance indicators</p>
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="dashboard-container">
+        <!-- Hero Section -->
+        <div class="hero-dashboard">
+            <h1>📊 StatFlow Dashboard</h1>
+            <p class="subtitle">Your comprehensive analytics pipeline overview</p>
+        </div>
+
+        <!-- Overview Stats -->
+        <div class="dashboard-grid" id="overview-stats">
+            <!-- Stats will be loaded here -->
+        </div>
+
+        <!-- Pipeline Progress -->
+        <div class="card progress-widget">
+            <h2>🔄 Pipeline Progress</h2>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="pipeline-progress-fill"></div>
             </div>
-
-            <div class="info-grid">
-                <div class="info-card">
-                    <h4>📈 KPIs</h4>
-                    <p>Get a quick overview of your dataset's health and size. Track total records, columns, and data
-                        completeness at a glance.</p>
-                </div>
-                <div class="info-card">
-                    <h4>📉 Trends</h4>
-                    <p>Identify patterns over time in your data. Understand how values change and detect seasonality or
-                        anomalies.</p>
-                </div>
-                <div class="info-card">
-                    <h4>⚠️ Risks</h4>
-                    <p>Highlight data quality issues like missing values, outliers, and skewed distributions that need
-                        attention.</p>
-                </div>
+            <div class="progress-text">
+                <span id="progress-label">Not started</span>
+                <span id="progress-percentage">0%</span>
             </div>
+        </div>
 
-            <!-- KPI Cards -->
-            <section class="card">
-                <h2>Key Performance Indicators</h2>
-                <div id="kpiLoading" class="loading-overlay">
-                    <div class="spinner"></div>
-                    <p style="margin-left: 1rem;">Loading KPIs...</p>
-                </div>
-                <div id="kpiGrid" class="kpi-grid" style="display: none;"></div>
-            </section>
+        <!-- Recent Files -->
+        <div class="card mb-6">
+            <h2 class="mb-4">📁 Recent Files</h2>
+            <div class="recent-files-list" id="recent-files-list">
+                <!-- Files will be loaded here -->
+            </div>
+        </div>
 
-            <!-- Risk Indicators -->
-            <section class="risk-section">
-                <h2>⚠️ Risk Analysis</h2>
-                <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                    Potential data quality issues that may affect your analysis
-                </p>
-                <div id="riskLoading" class="loading-overlay">
-                    <div class="spinner"></div>
-                    <p style="margin-left: 1rem;">Analyzing risks...</p>
-                </div>
-                <div id="riskList" class="risk-list" style="display: none;"></div>
-            </section>
+        <!-- Quick Insights -->
+        <div class="card mb-6">
+            <h2 class="mb-4">💡 Quick Insights</h2>
+            <div class="mini-charts-grid" id="quick-charts">
+                <!-- Mini charts will be loaded here -->
+            </div>
+        </div>
 
-            <!-- Trend Visualization -->
-            <section class="chart-container">
-                <h2>📈 Trend Analysis</h2>
-                <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                    Select a numeric column to visualize trends and patterns
-                </p>
-                <div class="form-group">
-                    <label>Select Column:</label>
-                    <select id="trendColumn" class="column-select">
-                        <option value="">-- Loading columns... --</option>
-                    </select>
-                    <button id="trendBtn" class="btn btn-primary" style="margin-top: 1rem;">
-                        Generate Trend Chart
-                    </button>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="trendChart"></canvas>
-                </div>
-            </section>
-
-            <div class="card">
-                <h2>💬 Next Steps</h2>
-                <p style="margin-bottom: 1rem;">Ready to ask questions about your data using natural language?</p>
-                <button id="nlqBtn" class="btn btn-primary btn-large">
-                    Start Chat Analysis →
+        <!-- Quick Actions -->
+        <div class="card">
+            <h2 class="mb-4">⚡ Quick Actions</h2>
+            <div class="quick-actions-grid">
+                <a href="index.html" class="action-btn">
+                    <span class="action-icon">📤</span>
+                    <span class="action-label">Upload New File</span>
+                </a>
+                <a href="schema.html" class="action-btn" id="continueSchemaBtn">
+                    <span class="action-icon">🗂️</span>
+                    <span class="action-label">Configure Schema</span>
+                </a>
+                <a href="analysis.html" class="action-btn" id="continueAnalysisBtn">
+                    <span class="action-icon">📈</span>
+                    <span class="action-label">View Analysis</span>
+                </a>
+                <a href="report.html" class="action-btn" id="continueReportBtn">
+                    <span class="action-icon">📄</span>
+                    <span class="action-label">Generate Report</span>
+                </a>
+                <button class="action-btn" onclick="DashboardService.restartPipeline()">
+                    <span class="action-icon">🔄</span>
+                    <span class="action-label">Restart Pipeline</span>
+                </button>
+                <button class="action-btn" onclick="DashboardService.downloadAllOutputs()">
+                    <span class="action-icon">💾</span>
+                    <span class="action-label">Download All</span>
                 </button>
             </div>
         </div>
     </div>
 
     <script src="assets/app.js"></script>
-    <script>
-        let currentFileId = null;
-        let trendChart = null;
-
-        // Get file_id from URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        currentFileId = urlParams.get('file_id');
-
-        // If no file_id in URL, check localStorage
-        if (!currentFileId) {
-            currentFileId = localStorage.getItem('currentFileId');
-        }
-
-        if (!currentFileId) {
-            alert('No file ID found. Please upload a file first.');
-            window.location.href = 'index.html';
-        }
-
-        // Load KPIs
-        async function loadKPIs() {
-            try {
-                const response = await fetch(`http://localhost:8000/api/dashboard/kpi/${currentFileId}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to load KPIs');
-                }
-
-                const data = await response.json();
-
-                document.getElementById('kpiLoading').style.display = 'none';
-                document.getElementById('kpiGrid').style.display = 'grid';
-
-                const kpis = data.kpis || data;
-
-                // Create KPI cards
-                const kpiHTML = `
-                    <div class="kpi-card">
-                        <div class="kpi-label">Total Rows</div>
-                        <div class="kpi-value">${kpis.total_rows || kpis.rows || 0}</div>
-                        <div class="kpi-subtitle">Records in dataset</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Total Columns</div>
-                        <div class="kpi-value">${kpis.total_columns || kpis.columns || 0}</div>
-                        <div class="kpi-subtitle">Variables tracked</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Missing Data</div>
-                        <div class="kpi-value">${kpis.missing_percentage || kpis.missing_pct || '0'}%</div>
-                        <div class="kpi-subtitle">Completeness score</div>
-                    </div>
-                    <div class="kpi-card" style="background: linear-gradient(135deg, #28a745, #218838);">
-                        <div class="kpi-label">Data Quality</div>
-                        <div class="kpi-value">${kpis.quality_score || calculateQuality(kpis)}%</div>
-                        <div class="kpi-subtitle">Overall health</div>
-                    </div>
-                `;
-
-                document.getElementById('kpiGrid').innerHTML = kpiHTML;
-
-            } catch (error) {
-                console.error('Error loading KPIs:', error);
-                document.getElementById('kpiLoading').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">❌</div>
-                        <p>Unable to load KPIs</p>
-                    </div>
-                `;
-            }
-        }
-
-        function calculateQuality(kpis) {
-            const missingPct = parseFloat(kpis.missing_percentage || kpis.missing_pct || 0);
-            return Math.max(0, Math.round(100 - missingPct));
-        }
-
-        // Load Risks
-        async function loadRisks() {
-            try {
-                const response = await fetch(`http://localhost:8000/api/dashboard/risks/${currentFileId}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to load risks');
-                }
-
-                const data = await response.json();
-
-                document.getElementById('riskLoading').style.display = 'none';
-                document.getElementById('riskList').style.display = 'grid';
-
-                const risks = data.risks || [];
-
-                if (risks.length === 0) {
-                    document.getElementById('riskList').innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">✅</div>
-                            <p>No significant risks detected. Your data looks healthy!</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Build risk items
-                let riskHTML = '';
-
-                // High missing columns
-                if (data.high_missing_columns && data.high_missing_columns.length > 0) {
-                    riskHTML += `
-                        <div class="risk-item high">
-                            <div class="risk-icon">🔴</div>
-                            <div class="risk-content">
-                                <h4>High Missing Values <span class="risk-badge high">HIGH</span></h4>
-                                <p>Columns: ${data.high_missing_columns.join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Skewed columns
-                if (data.skewed_columns && data.skewed_columns.length > 0) {
-                    riskHTML += `
-                        <div class="risk-item medium">
-                            <div class="risk-icon">🟡</div>
-                            <div class="risk-content">
-                                <h4>Skewed Distribution <span class="risk-badge medium">MEDIUM</span></h4>
-                                <p>Columns: ${data.skewed_columns.join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Outlier columns
-                if (data.outlier_columns && data.outlier_columns.length > 0) {
-                    riskHTML += `
-                        <div class="risk-item medium">
-                            <div class="risk-icon">🟠</div>
-                            <div class="risk-content">
-                                <h4>Outliers Detected <span class="risk-badge medium">MEDIUM</span></h4>
-                                <p>Columns: ${data.outlier_columns.join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // High cardinality
-                if (data.high_cardinality_columns && data.high_cardinality_columns.length > 0) {
-                    riskHTML += `
-                        <div class="risk-item low">
-                            <div class="risk-icon">🔵</div>
-                            <div class="risk-content">
-                                <h4>High Cardinality <span class="risk-badge low">LOW</span></h4>
-                                <p>Columns with many unique values: ${data.high_cardinality_columns.join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                document.getElementById('riskList').innerHTML = riskHTML || `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">✅</div>
-                        <p>No risks to display</p>
-                    </div>
-                `;
-
-            } catch (error) {
-                console.error('Error loading risks:', error);
-                document.getElementById('riskLoading').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">❌</div>
-                        <p>Unable to load risk analysis</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Load Columns for Trend Selector
-        async function loadColumns() {
-            try {
-                const response = await fetch(`http://localhost:8000/api/schema/columns/${currentFileId}`);
-                const data = await response.json();
-
-                const select = document.getElementById('trendColumn');
-                select.innerHTML = '<option value="">-- Select a column --</option>' +
-                    (data.columns || []).map(col => `<option value="${col}">${col}</option>`).join('');
-
-            } catch (error) {
-                console.error('Error loading columns:', error);
-            }
-        }
-
-        // Generate Trend Chart
-        document.getElementById('trendBtn').addEventListener('click', async () => {
-            const column = document.getElementById('trendColumn').value;
-
-            if (!column) {
-                alert('Please select a column');
-                return;
-            }
-
-            try {
-                const btn = document.getElementById('trendBtn');
-                btn.disabled = true;
-                btn.textContent = 'Loading...';
-
-                const response = await fetch(`http://localhost:8000/api/dashboard/trend/${currentFileId}/${column}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to load trend data');
-                }
-
-                const data = await response.json();
-
-                // Destroy existing chart
-                if (trendChart) {
-                    trendChart.destroy();
-                }
-
-                // Create new chart
-                const ctx = document.getElementById('trendChart').getContext('2d');
-                trendChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.labels || data.index || Array.from({ length: (data.values || []).length }, (_, i) => i + 1),
-                        datasets: [{
-                            label: column,
-                            data: data.values || data.data || [],
-                            borderColor: '#1a5490',
-                            backgroundColor: 'rgba(26, 84, 144, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `Trend Analysis: ${column}`
-                            },
-                            legend: {
-                                display: true
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: false
-                            }
-                        }
-                    }
-                });
-
-                btn.disabled = false;
-                btn.textContent = 'Generate Trend Chart';
-
-            } catch (error) {
-                console.error('Error generating trend:', error);
-                alert('Error generating trend chart. Please try another column.');
-
-                const btn = document.getElementById('trendBtn');
-                btn.disabled = false;
-                btn.textContent = 'Generate Trend Chart';
-            }
-        });
-
-        // Navigate to NLQ
-        document.getElementById('nlqBtn').addEventListener('click', () => {
-            window.location.href = `nlq.html?file_id=${currentFileId}`;
-        });
-
-        // Load all data on page load
-        loadKPIs();
-        loadRisks();
-        loadColumns();
-    </script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script src="assets/charts.js"></script>
+    <script src="assets/dashboard.js"></script>
 </body>
 
 </html>

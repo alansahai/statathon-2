@@ -12,7 +12,7 @@ from services.insight_engine import InsightEngine
 from models.insight_models import InsightOverviewRequest, FullInsightRequest
 from utils.file_manager import FileManager
 
-router = APIRouter(prefix="/api/insight", tags=["Insights"])
+router = APIRouter(prefix="/api/insight", tags=["08 Insight Engine"])
 
 # File manager instance
 file_manager = FileManager()
@@ -80,21 +80,52 @@ async def get_full_insights(request: FullInsightRequest) -> Dict[str, Any]:
     - Recommended actions: Prioritized suggestions
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = InsightEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        result = engine.generate_full_insights(
-            time_column=request.time_column,
-            value_column=request.value_column,
-            group_column=request.group_column
-        )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "insights": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = InsightEngine(df)
+                
+                result = engine.generate_full_insights(
+                    time_column=request.time_column,
+                    value_column=request.value_column,
+                    group_column=request.group_column
+                )
+                
+                results_per_file[fid] = {"insights": result}
+                
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Insight error: {str(e)}")
 

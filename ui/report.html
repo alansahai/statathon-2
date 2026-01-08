@@ -222,7 +222,11 @@
 </head>
 
 <body>
-    <div id="navbar-container"></div>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
 
     <div class="container">
         <div class="report-container">
@@ -255,16 +259,39 @@
                 process typically takes 10-30 seconds depending on data complexity.
             </div>
 
+            <!-- File Info -->
+            <div class="file-info"></div>
+
             <div class="generate-section">
+                <h2>Report Configuration</h2>
+
+                <div class="form-group mb-4">
+                    <label for="reportMode">Report Mode:</label>
+                    <select id="reportMode" class="form-control">
+                        <option value="separate">Separate - Individual report for each file</option>
+                        <option value="combined">Combined - Single report for all files</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label for="reportType">Report Format:</label>
+                    <select id="reportType" class="form-control">
+                        <option value="pdf">PDF Document</option>
+                        <option value="docx">Word Document (DOCX)</option>
+                    </select>
+                </div>
+
                 <h2>Ready to Generate?</h2>
                 <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                    Click the button below to compile all your analysis into a downloadable PDF
+                    Click the button below to compile all your analysis into a downloadable report
                 </p>
                 <button id="generateBtn" class="generate-btn">
-                    <span>📊 Generate Report</span>
+                    <span>📄 Generate Report</span>
                 </button>
                 <p id="statusMessage" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></p>
             </div>
+
+            <div id="report-links" class="mt-6"></div>
 
             <div id="reportPreview" class="report-preview">
                 <div class="download-card">
@@ -344,77 +371,164 @@
     </div>
 
     <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
     <script>
-        let currentFileId = null;
+        let allFileIds = [];
 
-        // Get file_id from URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        currentFileId = urlParams.get('file_id');
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get file IDs from localStorage
+            allFileIds = ApiService.getFileIds();
 
-        // If no file_id in URL, check localStorage
-        if (!currentFileId) {
-            currentFileId = localStorage.getItem('currentFileId');
-        }
+            if (allFileIds.length === 0) {
+                showToastError('No files loaded. Redirecting to upload page...');
+                setTimeout(() => window.location.href = 'index.html', 2000);
+                return;
+            }
 
-        if (!currentFileId) {
-            alert('No file ID found. Please upload a file first.');
-            window.location.href = 'index.html';
-        }
+            // Show file info
+            PipelineService.displayFileInfo();
+        });
 
         const generateBtn = document.getElementById('generateBtn');
         const statusMessage = document.getElementById('statusMessage');
         const reportPreview = document.getElementById('reportPreview');
         const downloadLink = document.getElementById('downloadLink');
+        const reportMode = document.getElementById('reportMode');
+        const reportType = document.getElementById('reportType');
 
         generateBtn.addEventListener('click', generateReport);
 
         async function generateReport() {
             try {
                 // Disable button and show loading
+                showLoader('Generating report...');
+                showProgress();
+                setProgress(30, 'Compiling data...');
                 generateBtn.disabled = true;
                 generateBtn.innerHTML = '<span class="spinner"></span> Generating Report...';
                 statusMessage.textContent = 'Please wait while we compile your report. This may take up to 30 seconds...';
                 statusMessage.style.color = 'var(--primary-color)';
 
-                const response = await fetch(`http://localhost:8000/api/report/generate/${currentFileId}`, {
-                    method: 'GET'
-                });
+                const mode = reportMode?.value || 'separate';
+                const type = reportType?.value || 'pdf';
 
-                if (!response.ok) {
-                    throw new Error('Failed to generate report');
-                }
+                setProgress(60, 'Creating report...');
 
-                const data = await response.json();
+                const response = await ApiService.generateReport(null, mode, type);
 
-                // Show success
+                setProgress(100, 'Complete!');
+                hideLoader();
+                hideProgress();
+
+                // Display download links
+                displayDownloadLinks(response);
+
                 statusMessage.textContent = '✓ Report generated successfully!';
-                statusMessage.style.color = '#28a745';
+                statusMessage.style.color = 'var(--success-color)';
+                showToastSuccess('Report generated successfully!');
 
-                // Show preview section
-                reportPreview.style.display = 'block';
-
-                // Set download link
-                if (data.download_url) {
-                    downloadLink.href = `http://localhost:8000${data.download_url}`;
-                    downloadLink.download = data.filename || 'report.pdf';
-                } else if (data.report_path) {
-                    // Alternative: use report_path
-                    downloadLink.href = `http://localhost:8000/static/reports/${data.report_path.split('/').pop()}`;
-                    downloadLink.download = data.report_path.split('/').pop();
-                }
-
-                // Scroll to preview
-                setTimeout(() => {
-                    reportPreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 300);
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '📄 Generate Report';
 
             } catch (error) {
                 console.error('Error:', error);
-                statusMessage.textContent = '❌ Failed to generate report. Please try again.';
-                statusMessage.style.color = '#dc3545';
+                hideLoader();
+                hideProgress();
+                statusMessage.textContent = '✗ Error generating report: ' + error.message;
+                statusMessage.style.color = 'var(--danger-color)';
+                showToastError('Error generating report: ' + error.message);
                 generateBtn.disabled = false;
-                generateBtn.innerHTML = '<span>📊 Generate Report</span>';
+                generateBtn.innerHTML = '📄 Generate Report';
             }
+        }
+
+        function displayDownloadLinks(response) {
+            const linksContainer = document.getElementById('report-links') || createLinksContainer();
+
+            let html = '<h3 class="mb-3">📥 Download Reports</h3><div class="grid grid-cols-2 gap-4">';
+
+            if (response.results) {
+                // Separate files mode
+                Object.keys(response.results).forEach((fileId, index) => {
+                    const fileResult = response.results[fileId];
+                    const downloadUrl = fileResult.download_url || fileResult.report_path;
+
+                    html += `
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4>File ${index + 1}</h4>
+                                <button class="btn btn-primary mt-3" onclick="downloadFile('${downloadUrl}', 'report_file_${index + 1}.pdf')">
+                                    📥 Download PDF
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else if (response.zip_path) {
+                // Combined/ZIP mode
+                html += `
+                    <div class="card col-span-2">
+                        <div class="card-body text-center">
+                            <h4>Combined Report (ZIP)</h4>
+                            <button class="btn btn-primary btn-lg mt-3" onclick="downloadFile('${response.zip_path}', 'reports.zip')">
+                                📦 Download ZIP Archive
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            linksContainer.innerHTML = html;
+        }
+
+        function createLinksContainer() {
+            const main = document.querySelector('.container');
+            const container = document.createElement('div');
+            container.id = 'report-links';
+            container.className = 'mt-6';
+            main.appendChild(container);
+            return container;
+        }
+
+                });
+
+        if (!response.ok) {
+            throw new Error('Failed to generate report');
+        }
+
+        const data = await response.json();
+
+        // Show success
+        statusMessage.textContent = '✓ Report generated successfully!';
+        statusMessage.style.color = '#28a745';
+
+        // Show preview section
+        reportPreview.style.display = 'block';
+
+        // Set download link
+        if (data.download_url) {
+            downloadLink.href = `http://localhost:8000${data.download_url}`;
+            downloadLink.download = data.filename || 'report.pdf';
+        } else if (data.report_path) {
+            // Alternative: use report_path
+            downloadLink.href = `http://localhost:8000/static/reports/${data.report_path.split('/').pop()}`;
+            downloadLink.download = data.report_path.split('/').pop();
+        }
+
+        // Scroll to preview
+        setTimeout(() => {
+            reportPreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+
+            } catch (error) {
+            console.error('Error:', error);
+            statusMessage.textContent = '❌ Failed to generate report. Please try again.';
+            statusMessage.style.color = '#dc3545';
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<span>📊 Generate Report</span>';
+        }
         }
 
         // Navigation buttons

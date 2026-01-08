@@ -12,7 +12,7 @@ from pathlib import Path
 from services.schema_mapping_engine import SchemaMappingEngine
 
 
-router = APIRouter(prefix="/api/schema", tags=["Schema Mapping"])
+router = APIRouter(prefix="/api/schema", tags=["02 Schema Mapping"])
 
 
 class MappingRequest(BaseModel):

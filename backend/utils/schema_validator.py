@@ -395,3 +395,99 @@ class SchemaValidator:
                 }
         
         return report
+    
+    def load_schema_for_files(
+        self, 
+        file_ids: List[str],
+        file_manager: Any
+    ) -> Dict[str, Any]:
+        """
+        Load and infer schemas for multiple files
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load files
+            
+        Returns:
+            Dictionary mapping file_id to schema info:
+            {
+                "<file_id>": {"schema": {...}, "status": "ok"},
+                "<file_id>": {"error": "File not found"}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Get file path from file manager
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                # Load dataframe
+                df = file_manager.load_dataframe(file_path)
+                
+                # Infer schema
+                schema = self.infer_schema(df)
+                
+                results[file_id] = {
+                    "schema": schema,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results
+    
+    def apply_schema_for_files(
+        self,
+        file_ids: List[str],
+        file_manager: Any,
+        expected_schema: Optional[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Validate schemas for multiple files against expected schema
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load files
+            expected_schema: Expected column types (optional)
+            
+        Returns:
+            Dictionary mapping file_id to validation results:
+            {
+                "<file_id>": {"validation": {...}, "status": "ok"},
+                "<file_id>": {"error": "No mapping found"}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Get file path from file manager
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                # Load dataframe
+                df = file_manager.load_dataframe(file_path)
+                
+                # Generate validation report
+                validation_report = self.generate_validation_report(
+                    df, 
+                    {"columns": {col: {"dtype": dtype} for col, dtype in expected_schema.items()}} 
+                    if expected_schema else None
+                )
+                
+                results[file_id] = {
+                    "validation": validation_report,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

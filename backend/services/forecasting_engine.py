@@ -1097,3 +1097,110 @@ class ForecastingEngine:
         
         else:
             return self._make_json_safe({"error": f"Unknown method: {method}"})
+    
+    @staticmethod
+    def forecast_multiple(
+        file_ids: List[str],
+        file_manager: Any,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Run forecasting operations on multiple files with error handling
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load files
+            params: Parameters for forecasting (time_column, value_column, method, periods, etc.)
+            
+        Returns:
+            Dictionary mapping file_id to forecast results:
+            {
+                "<file_id>": {"result": {...}, "status": "ok"},
+                "<file_id>": {"error": "No time column in dataset"}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Load file
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                df = file_manager.load_dataframe(file_path)
+                
+                # Check if required columns exist
+                time_column = params.get("time_column")
+                value_column = params.get("value_column")
+                
+                if time_column and time_column not in df.columns:
+                    results[file_id] = {"error": "No time column in dataset"}
+                    continue
+                
+                if value_column and value_column not in df.columns:
+                    results[file_id] = {"error": f"Value column '{value_column}' not found"}
+                    continue
+                
+                # Initialize engine for this file
+                engine = ForecastingEngine(df)
+                
+                # Perform forecasting operation
+                method = params.get("method", "auto")
+                periods = params.get("periods", 12)
+                weight_column = params.get("weight_column")
+                
+                if method == "auto":
+                    result = engine.auto_forecast(
+                        value_column=value_column,
+                        periods=periods,
+                        weight_column=weight_column,
+                        **params
+                    )
+                elif method == "ma":
+                    result = engine.moving_average(
+                        value_column=value_column,
+                        window=params.get("window", 3),
+                        periods=periods,
+                        weight_column=weight_column
+                    )
+                elif method == "es":
+                    result = engine.exponential_smoothing(
+                        value_column=value_column,
+                        alpha=params.get("alpha"),
+                        periods=periods,
+                        weight_column=weight_column
+                    )
+                elif method == "holt_winters":
+                    result = engine.holt_winters(
+                        value_column=value_column,
+                        seasonal_periods=params.get("seasonal_periods", 12),
+                        trend=params.get("trend", "add"),
+                        seasonal=params.get("seasonal", "add"),
+                        periods=periods,
+                        weight_column=weight_column
+                    )
+                elif method == "arima":
+                    result = engine.arima(
+                        value_column=value_column,
+                        p=params.get("p"),
+                        d=params.get("d"),
+                        q=params.get("q"),
+                        periods=periods,
+                        weight_column=weight_column
+                    )
+                else:
+                    results[file_id] = {"error": f"Unknown method: {method}"}
+                    continue
+                
+                results[file_id] = {
+                    "result": result,
+                    "operations_log": engine.operations_log,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

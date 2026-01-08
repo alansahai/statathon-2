@@ -637,3 +637,62 @@ class CleaningEngine:
         }
         
         return make_json_safe(summary)
+    
+    @staticmethod
+    def process_multiple(
+        file_ids: List[str],
+        file_manager: Any,
+        operation: str = "auto_clean",
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Process multiple files with cleaning operations
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load/save files
+            operation: Operation to perform ("detect_issues", "auto_clean", "manual_clean")
+            **kwargs: Additional parameters for the operation
+            
+        Returns:
+            Dictionary mapping file_id to results:
+            {
+                "<file_id>": {"result": {...}, "status": "ok"},
+                "<file_id>": {"error": "..."}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Load file
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                df = file_manager.load_dataframe(file_path)
+                
+                # Initialize engine for this file
+                engine = CleaningEngine(df)
+                
+                # Perform operation
+                if operation == "detect_issues":
+                    result = engine.detect_issues()
+                elif operation == "auto_clean":
+                    result = engine.auto_clean()
+                elif operation == "manual_clean":
+                    result = engine.manual_clean(**kwargs)
+                else:
+                    results[file_id] = {"error": f"Unknown operation: {operation}"}
+                    continue
+                
+                results[file_id] = {
+                    "result": result,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

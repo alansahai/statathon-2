@@ -1052,3 +1052,86 @@ class MLEngine:
         })
         
         return self._make_json_safe(result)
+    
+    @staticmethod
+    def ml_multiple(
+        file_ids: List[str],
+        file_manager: Any,
+        ml_type: str,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Run ML operations on multiple files independently
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance to load files
+            ml_type: Type of ML operation ("classify", "regress", "cluster", "pca", "feature_importance")
+            params: Parameters for the ML operation
+            
+        Returns:
+            Dictionary mapping file_id to ML results:
+            {
+                "<file_id>": {"result": {...}, "status": "ok"},
+                "<file_id>": {"error": "..."}
+            }
+        """
+        results = {}
+        
+        for file_id in file_ids:
+            try:
+                # Load file
+                file_path = file_manager.get_file_path(file_id)
+                if not file_path:
+                    results[file_id] = {"error": "File not found"}
+                    continue
+                
+                df = file_manager.load_dataframe(file_path)
+                
+                # Initialize engine for this file (isolated preprocessing)
+                engine = MLEngine(df)
+                
+                # Perform ML operation
+                if ml_type == "classify":
+                    result = engine.logistic_regression(
+                        target_column=params.get("target_column"),
+                        feature_columns=params.get("feature_columns", []),
+                        test_size=params.get("test_size", 0.2)
+                    )
+                elif ml_type == "regress":
+                    result = engine.linear_regression(
+                        target_column=params.get("target_column"),
+                        feature_columns=params.get("feature_columns", []),
+                        test_size=params.get("test_size", 0.2)
+                    )
+                elif ml_type == "cluster":
+                    result = engine.kmeans_clustering(
+                        feature_columns=params.get("feature_columns", []),
+                        n_clusters=params.get("n_clusters", 3)
+                    )
+                elif ml_type == "pca":
+                    result = engine.pca(
+                        feature_columns=params.get("feature_columns", []),
+                        n_components=params.get("n_components")
+                    )
+                elif ml_type == "feature_importance":
+                    result = engine.random_forest_regression(
+                        target_column=params.get("target_column"),
+                        feature_columns=params.get("feature_columns", []),
+                        n_estimators=params.get("n_estimators", 100),
+                        test_size=params.get("test_size", 0.2)
+                    )
+                else:
+                    results[file_id] = {"error": f"Unknown ML type: {ml_type}"}
+                    continue
+                
+                results[file_id] = {
+                    "result": result,
+                    "operations_log": engine.operations_log,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

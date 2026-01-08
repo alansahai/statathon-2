@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Series Forecasting - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <div class="hero text-center mb-6">
+            <h1>🔮 Time Series Forecasting</h1>
+            <p>Predict future trends using ARIMA, Prophet, and ML models</p>
+        </div>
+
+        <!-- File Info -->
+        <div class="file-info"></div>
+
+        <div class="card">
+            <h2>Forecast Configuration</h2>
+            <p class="text-muted mb-4">Select a time column and target variable to generate forecasts</p>
+
+            <div class="form-group mb-4">
+                <label for="timeColumn">Time Column:</label>
+                <select id="timeColumn" class="form-control">
+                    <option value="">Select time column...</option>
+                </select>
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="targetColumn">Target Variable:</label>
+                <select id="targetColumn" class="form-control">
+                    <option value="">Select target variable...</option>
+                </select>
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="forecastPeriods">Forecast Periods:</label>
+                <input type="number" id="forecastPeriods" class="form-control" value="30" min="1" max="365">
+                <small class="text-muted">Number of time periods to forecast into the future</small>
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="forecastModel">Model:</label>
+                <select id="forecastModel" class="form-control">
+                    <option value="arima">ARIMA</option>
+                    <option value="prophet">Prophet</option>
+                    <option value="lstm">LSTM Neural Network</option>
+                </select>
+            </div>
+
+            <button id="runForecastBtn" class="btn btn-primary btn-block">
+                🔮 Generate Forecast
+            </button>
+        </div>
+
+        <div id="forecastResults" class="mt-6" style="display: none;">
+            <div class="card">
+                <h2>Forecast Results</h2>
+                <div id="forecastChart"></div>
+                <div id="forecastMetrics" class="mt-4"></div>
+            </div>
+        </div>
+
+        <div class="actions mt-6">
+            <button class="btn btn-secondary" onclick="history.back()">← Back</button>
+            <button class="btn btn-primary" onclick="goTo('ml.html')">Continue to ML →</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p class="mt-3">Generating forecast...</p>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script>
+        let allFileIds = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check for file IDs
+            if (!requireFileIds()) return;
+
+            allFileIds = ApiService.getFileIds();
+            PipelineService.displayFileInfo();
+
+            // Load columns for first file
+            try {
+                const columns = await ApiService.getColumns(allFileIds[0]);
+                const timeSelect = document.getElementById('timeColumn');
+                const targetSelect = document.getElementById('targetColumn');
+
+                columns.forEach(col => {
+                    const option1 = new Option(col, col);
+                    const option2 = new Option(col, col);
+                    timeSelect.add(option1);
+                    targetSelect.add(option2);
+                });
+            } catch (error) {
+                console.error('Error loading columns:', error);
+                showToastError('Failed to load columns');
+            }
+
+            // Forecast button handler
+            document.getElementById('runForecastBtn').addEventListener('click', async () => {
+                const timeColumn = document.getElementById('timeColumn').value;
+                const targetColumn = document.getElementById('targetColumn').value;
+                const periods = parseInt(document.getElementById('forecastPeriods').value);
+                const model = document.getElementById('forecastModel').value;
+
+                if (!timeColumn || !targetColumn) {
+                    showToastError('Please select time column and target variable');
+                    return;
+                }
+
+                try {
+                    showLoader('Generating forecast...');
+
+                    const response = await ApiService.runForecasting(allFileIds[0], {
+                        time_column: timeColumn,
+                        target_column: targetColumn,
+                        periods: periods,
+                        model: model
+                    });
+
+                    hideLoader();
+                    showToastSuccess('Forecast generated successfully!');
+
+                    // Display results
+                    document.getElementById('forecastResults').style.display = 'block';
+                    document.getElementById('forecastMetrics').innerHTML = `
+                        <h3>Model Performance</h3>
+                        <p>MAE: ${response.mae?.toFixed(2) || 'N/A'}</p>
+                        <p>RMSE: ${response.rmse?.toFixed(2) || 'N/A'}</p>
+                        <p>MAPE: ${response.mape?.toFixed(2) || 'N/A'}%</p>
+                    `;
+
+                    markStepComplete('forecasting');
+                } catch (error) {
+                    console.error('Forecast error:', error);
+                    hideLoader();
+                    showToastError('Forecast failed: ' + error.message);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

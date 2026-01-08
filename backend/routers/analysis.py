@@ -16,7 +16,7 @@ from models.analysis_models import StatisticalTestRequest, AutoTestRequest, Welc
 
 router = APIRouter(
     prefix="/api/analysis",
-    tags=["Analysis"]
+    tags=["05 Analysis"]
 )
 
 file_manager = FileManager(base_storage_path="temp_uploads")
@@ -149,40 +149,68 @@ async def compute_descriptive_stats(request: DescriptiveStatsRequest):
     - Weighted variants if weight_column provided
     """
     try:
-        # Load data
-        df = _load_dataframe(request.file_id)
+        # Normalize file_ids (validator ensures this exists)
+        file_ids = request.file_ids
         
-        # Validate columns exist
-        missing_cols = [col for col in request.columns if col not in df.columns]
-        if missing_cols:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Columns not found: {missing_cols}"
-            )
+        # Validate file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Validate weight column if provided
-        if request.weight_column and request.weight_column not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Weight column '{request.weight_column}' not found"
-            )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Initialize engine and compute stats
-        engine = AnalysisEngine(df)
-        results = engine.descriptive_stats(
-            columns=request.columns,
-            weight_column=request.weight_column
-        )
+        for fid in file_ids:
+            try:
+                # Load data
+                df = _load_dataframe(fid)
+                
+                # Validate columns exist
+                missing_cols = [col for col in request.columns if col not in df.columns]
+                if missing_cols:
+                    errors[fid] = f"Columns not found: {missing_cols}"
+                    continue
+                
+                # Validate weight column if provided
+                if request.weight_column and request.weight_column not in df.columns:
+                    errors[fid] = f"Weight column '{request.weight_column}' not found"
+                    continue
+                
+                # Initialize engine and compute stats
+                engine = AnalysisEngine(df)
+                file_results = engine.descriptive_stats(
+                    columns=request.columns,
+                    weight_column=request.weight_column
+                )
+                
+                results_per_file[fid] = {
+                    "results": file_results,
+                    "operations_log": engine.get_operations_log()
+                }
+                
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
         
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "results": results,
-            "operations_log": engine.get_operations_log()
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
     
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
 
@@ -200,23 +228,6 @@ async def create_crosstab(request: CrosstabRequest):
     - Support for 3D crosstabs via layer_var
     """
     try:
-        # Load data
-        df = _load_dataframe(request.file_id)
-        
-        # Validate variables exist
-        required_vars = [request.row_var, request.col_var]
-        if request.layer_var:
-            required_vars.append(request.layer_var)
-        if request.weight_column:
-            required_vars.append(request.weight_column)
-        
-        missing_vars = [var for var in required_vars if var not in df.columns]
-        if missing_vars:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Variables not found: {missing_vars}"
-            )
-        
         # Validate normalize parameter
         valid_normalize = ["none", "row", "col", "all"]
         if request.normalize not in valid_normalize:
@@ -225,25 +236,70 @@ async def create_crosstab(request: CrosstabRequest):
                 detail=f"normalize must be one of {valid_normalize}"
             )
         
-        # Initialize engine and compute crosstab
-        engine = AnalysisEngine(df)
-        results = engine.crosstab(
-            row_var=request.row_var,
-            col_var=request.col_var,
-            layer_var=request.layer_var,
-            weight_column=request.weight_column,
-            normalize=request.normalize
-        )
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "results": results,
-            "operations_log": engine.get_operations_log()
+        # Process each file
+        results_per_file = {}
+        errors = {}
+        
+        for fid in file_ids:
+            try:
+                # Load data
+                df = _load_dataframe(fid)
+                
+                # Validate variables exist
+                required_vars = [request.row_var, request.col_var]
+                if request.layer_var:
+                    required_vars.append(request.layer_var)
+                if request.weight_column:
+                    required_vars.append(request.weight_column)
+                
+                missing_vars = [var for var in required_vars if var not in df.columns]
+                if missing_vars:
+                    errors[fid] = f"Variables not found: {missing_vars}"
+                    continue
+                
+                # Initialize engine and compute crosstab
+                engine = AnalysisEngine(df)
+                file_results = engine.crosstab(
+                    row_var=request.row_var,
+                    col_var=request.col_var,
+                    layer_var=request.layer_var,
+                    weight_column=request.weight_column,
+                    normalize=request.normalize
+                )
+                
+                results_per_file[fid] = {
+                    "results": file_results,
+                    "operations_log": engine.get_operations_log()
+                }
+                
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
     
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Crosstab error: {str(e)}")
 
@@ -817,32 +873,62 @@ async def run_statistical_test(request: StatisticalTestRequest):
     - details: Additional test-specific information
     """
     try:
-        # Load the dataframe
-        df = _load_dataframe(request.file_id)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Create analysis engine
-        engine = AnalysisEngine(df)
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Run the statistical test
-        result = engine.run_stat_test(
-            test_type=request.test_type,
-            var1=request.var1,
-            var2=request.var2,
-            group=request.group,
-            weights=request.weights
-        )
+        for fid in file_ids:
+            try:
+                # Load the dataframe
+                df = _load_dataframe(fid)
+                
+                # Create analysis engine
+                engine = AnalysisEngine(df)
+                
+                # Run the statistical test
+                result = engine.run_stat_test(
+                    test_type=request.test_type,
+                    var1=request.var1,
+                    var2=request.var2,
+                    group=request.group,
+                    weights=request.weights
+                )
+                
+                results_per_file[fid] = {
+                    "result": result,
+                    "logs": engine.get_operations_log()
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
         
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "result": result,
-            "logs": engine.get_operations_log()
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
-    
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Statistical test error: {str(e)}")
 
@@ -867,30 +953,60 @@ async def auto_select_and_run_test(request: AutoTestRequest):
     - result: Test results (statistic, p_value, etc.)
     """
     try:
-        # Load the dataframe
-        df = _load_dataframe(request.file_id)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Create analysis engine
-        engine = AnalysisEngine(df)
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Auto-select and run test
-        result = engine.auto_test(
-            var1=request.var1,
-            var2=request.var2,
-            group=request.group
-        )
+        for fid in file_ids:
+            try:
+                # Load the dataframe
+                df = _load_dataframe(fid)
+                
+                # Create analysis engine
+                engine = AnalysisEngine(df)
+                
+                # Auto-select and run test
+                result = engine.auto_test(
+                    var1=request.var1,
+                    var2=request.var2,
+                    group=request.group
+                )
+                
+                results_per_file[fid] = {
+                    "result": result,
+                    "logs": engine.get_operations_log()
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
         
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "result": result,
-            "logs": engine.get_operations_log()
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
-    
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Auto-test error: {str(e)}")
 
@@ -919,52 +1035,75 @@ async def run_welch_anova(request: WelchANOVARequest):
     - interpretation: Plain-text interpretation of results
     """
     try:
-        # Load the dataframe
-        df = _load_dataframe(request.file_id)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Validate columns exist
-        if request.group_col not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Group column '{request.group_col}' not found. Available: {list(df.columns)}"
-            )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        if request.value_col not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Value column '{request.value_col}' not found. Available: {list(df.columns)}"
-            )
+        for fid in file_ids:
+            try:
+                # Load the dataframe
+                df = _load_dataframe(fid)
+                
+                # Validate columns exist
+                if request.group_col not in df.columns:
+                    errors[fid] = f"Group column '{request.group_col}' not found"
+                    continue
+                
+                if request.value_col not in df.columns:
+                    errors[fid] = f"Value column '{request.value_col}' not found"
+                    continue
+                
+                if request.weight_column and request.weight_column not in df.columns:
+                    errors[fid] = f"Weight column '{request.weight_column}' not found"
+                    continue
+                
+                # Create analysis engine and run test
+                engine = AnalysisEngine(df)
+                result = engine.run_welch_anova(
+                    group_col=request.group_col,
+                    value_col=request.value_col,
+                    weight_col=request.weight_column
+                )
+                
+                # Check for errors in result
+                if "error" in result:
+                    errors[fid] = result["error"]
+                    continue
+                
+                results_per_file[fid] = {
+                    "result": result,
+                    "warnings": result.get("warnings", []),
+                    "operations_log": engine.get_operations_log()
+                }
+                
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
         
-        if request.weight_column and request.weight_column not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Weight column '{request.weight_column}' not found. Available: {list(df.columns)}"
-            )
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        # Create analysis engine and run test
-        engine = AnalysisEngine(df)
-        result = engine.run_welch_anova(
-            group_col=request.group_col,
-            value_col=request.value_col,
-            weight_col=request.weight_column
-        )
-        
-        # Check for errors in result
-        if "error" in result:
-            raise HTTPException(status_code=400, detail=result["error"])
-        
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "result": result,
-            "warnings": result.get("warnings", []),
-            "operations_log": engine.get_operations_log()
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
-    
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
     except HTTPException:
         raise
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Welch ANOVA error: {str(e)}")
 
@@ -987,43 +1126,68 @@ async def run_shapiro_wilk(request: ShapiroWilkRequest):
     - recommended_transformations: Suggested transformations if non-normal
     """
     try:
-        # Load the dataframe
-        df = _load_dataframe(request.file_id)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Validate column exists
-        if request.value_col not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Column '{request.value_col}' not found. Available: {list(df.columns)}"
-            )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Check if column is numeric
-        if not pd.api.types.is_numeric_dtype(df[request.value_col]):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Column '{request.value_col}' must be numeric for Shapiro-Wilk test"
-            )
+        for fid in file_ids:
+            try:
+                # Load the dataframe
+                df = _load_dataframe(fid)
+                
+                # Validate column exists
+                if request.value_col not in df.columns:
+                    errors[fid] = f"Column '{request.value_col}' not found"
+                    continue
+                
+                # Check if column is numeric
+                if not pd.api.types.is_numeric_dtype(df[request.value_col]):
+                    errors[fid] = f"Column '{request.value_col}' must be numeric"
+                    continue
+                
+                # Create analysis engine and run test
+                engine = AnalysisEngine(df)
+                result = engine.run_shapiro_wilk(value_col=request.value_col)
+                
+                # Check for errors in result
+                if "error" in result:
+                    errors[fid] = result["error"]
+                    continue
+                
+                results_per_file[fid] = {
+                    "result": result,
+                    "warnings": result.get("warnings", []),
+                    "operations_log": engine.get_operations_log()
+                }
+                
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
         
-        # Create analysis engine and run test
-        engine = AnalysisEngine(df)
-        result = engine.run_shapiro_wilk(value_col=request.value_col)
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        # Check for errors in result
-        if "error" in result:
-            raise HTTPException(status_code=400, detail=result["error"])
-        
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "result": result,
-            "warnings": result.get("warnings", []),
-            "operations_log": engine.get_operations_log()
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
-    
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
     except HTTPException:
         raise
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Shapiro-Wilk error: {str(e)}")
 
@@ -1047,66 +1211,86 @@ async def run_tukey_hsd(request: TukeyHSDRequest):
     - summary: Plain-text summary of results
     """
     try:
-        # Load the dataframe
-        df = _load_dataframe(request.file_id)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Validate columns exist
-        if request.group_col not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Group column '{request.group_col}' not found. Available: {list(df.columns)}"
-            )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        if request.value_col not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Value column '{request.value_col}' not found. Available: {list(df.columns)}"
-            )
+        for fid in file_ids:
+            try:
+                # Load the dataframe
+                df = _load_dataframe(fid)
+                
+                # Validate columns exist
+                if request.group_col not in df.columns:
+                    errors[fid] = f"Group column '{request.group_col}' not found"
+                    continue
+                
+                if request.value_col not in df.columns:
+                    errors[fid] = f"Value column '{request.value_col}' not found"
+                    continue
+                
+                if request.weight_column and request.weight_column not in df.columns:
+                    errors[fid] = f"Weight column '{request.weight_column}' not found"
+                    continue
+                
+                # Check if value column is numeric
+                if not pd.api.types.is_numeric_dtype(df[request.value_col]):
+                    errors[fid] = f"Value column '{request.value_col}' must be numeric"
+                    continue
+                
+                # Check for at least 2 groups
+                n_groups = df[request.group_col].dropna().nunique()
+                if n_groups < 2:
+                    errors[fid] = f"Need at least 2 groups, found {n_groups}"
+                    continue
+                
+                # Create analysis engine and run test
+                engine = AnalysisEngine(df)
+                result = engine.run_tukey_hsd(
+                    group_col=request.group_col,
+                    value_col=request.value_col,
+                    weight_col=request.weight_column
+                )
+                
+                # Check for errors in result
+                if "error" in result:
+                    errors[fid] = result["error"]
+                    continue
+                
+                results_per_file[fid] = {
+                    "result": result,
+                    "warnings": result.get("warnings", []),
+                    "operations_log": engine.get_operations_log()
+                }
+                
+            except FileNotFoundError:
+                errors[fid] = "File not found"
+            except Exception as e:
+                errors[fid] = str(e)
         
-        if request.weight_column and request.weight_column not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Weight column '{request.weight_column}' not found. Available: {list(df.columns)}"
-            )
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        # Check if value column is numeric
-        if not pd.api.types.is_numeric_dtype(df[request.value_col]):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Value column '{request.value_col}' must be numeric for Tukey HSD"
-            )
-        
-        # Check for at least 2 groups
-        n_groups = df[request.group_col].dropna().nunique()
-        if n_groups < 2:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Need at least 2 groups for Tukey HSD, found {n_groups}"
-            )
-        
-        # Create analysis engine and run test
-        engine = AnalysisEngine(df)
-        result = engine.run_tukey_hsd(
-            group_col=request.group_col,
-            value_col=request.value_col,
-            weight_col=request.weight_column
-        )
-        
-        # Check for errors in result
-        if "error" in result:
-            raise HTTPException(status_code=400, detail=result["error"])
-        
-        return {
-            "status": "success",
-            "file_id": request.file_id,
-            "result": result,
-            "warnings": result.get("warnings", []),
-            "operations_log": engine.get_operations_log()
+        response = {
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
-    
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
     except HTTPException:
         raise
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tukey HSD error: {str(e)}")
+

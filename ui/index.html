@@ -227,7 +227,11 @@
 </head>
 
 <body>
-    <div id="navbar-container"></div>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
 
     <div class="container">
         <div class="upload-container">
@@ -248,9 +252,9 @@
 
             <div class="upload-section">
                 <h2>
-                    Select CSV File
+                    Select CSV Files (Up to 5)
                     <span class="tooltip-icon">i
-                        <span class="tooltip-text">Choose a CSV file from your computer. Max size: 50MB</span>
+                        <span class="tooltip-text">Choose 1-5 CSV files from your computer. Max size: 50MB each</span>
                     </span>
                 </h2>
 
@@ -258,25 +262,43 @@
                     <label for="fileInput" class="file-input-label" id="fileLabel">
                         <div class="file-icon">📁</div>
                         <div>
-                            <strong>Click to browse</strong> or drag & drop your file here
+                            <strong>Click to browse</strong> or drag & drop your files here
                         </div>
                         <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6c757d;">
-                            Supported format: CSV
+                            Supported format: CSV | Select 1-5 files
                         </div>
                     </label>
-                    <input type="file" id="fileInput" accept=".csv" />
+                    <input type="file" id="fileInput" accept=".csv" multiple />
                 </div>
 
+                <div id="file-list" style="margin: 1.5rem 0; display: none;"></div>
+
                 <button id="uploadBtn" class="btn btn-primary btn-upload" disabled>
-                    <span id="uploadBtnText">Select a file to continue</span>
+                    <span id="uploadBtnText">Select file(s) to continue</span>
                     <span class="tooltip-icon">i
-                        <span class="tooltip-text">Upload your CSV file to the server for processing</span>
+                        <span class="tooltip-text">Upload your CSV files to the server for processing</span>
                     </span>
+                </button>
+
+                <div class="or-divider" style="text-align: center; margin: 2rem 0; position: relative;">
+                    <span style="background: white; padding: 0 1rem; color: #6b7280; font-weight: 500;">OR</span>
+                    <div
+                        style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e5e7eb; z-index: -1;">
+                    </div>
+                </div>
+
+                <button id="demoBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">
+                    🎯 Try Demo Dataset
+                </button>
+
+                <button onclick="goTo('dashboard.html')" class="btn btn-accent"
+                    style="width: 100%; margin-bottom: 1rem;">
+                    📊 View Dashboard
                 </button>
 
                 <div class="explanation">
                     <strong>After uploading:</strong> You'll be automatically redirected to configure your data schema
-                    where you can specify column types (numeric, categorical, datetime).
+                    where you can specify column types (numeric, categorical, datetime) for each file.
                 </div>
 
                 <div class="progress-bar" id="progressBar">
@@ -288,7 +310,17 @@
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p class="mt-3">Uploading files...</p>
+        </div>
+    </div>
+
     <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
     <script>
         const fileInput = document.getElementById('fileInput');
         const fileLabel = document.getElementById('fileLabel');
@@ -296,25 +328,99 @@
         const uploadBtnText = document.getElementById('uploadBtnText');
         const progressBar = document.getElementById('progressBar');
         const statusMessage = document.getElementById('statusMessage');
+        const fileList = document.getElementById('file-list');
+
+        let selectedFiles = [];
 
         // Handle file selection
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                fileLabel.classList.add('has-file');
-                fileLabel.innerHTML = `
-                    <div class="file-icon">✅</div>
-                    <div>
-                        <strong>${file.name}</strong><br>
-                        <span style="font-size: 0.9rem; color: #6c757d;">
-                            ${(file.size / 1024).toFixed(2)} KB
-                        </span>
-                    </div>
-                `;
-                uploadBtn.disabled = false;
-                uploadBtnText.textContent = 'Upload File';
+            const files = Array.from(e.target.files);
+
+            // Validate file count
+            if (files.length === 0) {
+                resetFileSelection();
+                return;
             }
+
+            if (files.length > 5) {
+                showToastError('Maximum 5 files allowed. Please select fewer files.');
+                resetFileSelection();
+                return;
+            }
+
+            // Validate file types
+            const invalidFiles = files.filter(f => !f.name.toLowerCase().endsWith('.csv'));
+            if (invalidFiles.length > 0) {
+                showToastError('Only CSV files are allowed.');
+                resetFileSelection();
+                return;
+            }
+
+            selectedFiles = files;
+            displaySelectedFiles(files);
+
+            // Update label
+            fileLabel.classList.add('has-file');
+            fileLabel.innerHTML = `
+                <div class="file-icon">✅</div>
+                <div>
+                    <strong>${files.length} file(s) selected</strong><br>
+                    <span style="font-size: 0.9rem; color: #6c757d;">
+                        Total: ${formatTotalSize(files)}
+                    </span>
+                </div>
+            `;
+
+            uploadBtn.disabled = false;
+            uploadBtnText.textContent = `Upload ${files.length} File${files.length > 1 ? 's' : ''}`;
         });
+
+        // Display selected files in a list
+        function displaySelectedFiles(files) {
+            fileList.style.display = 'block';
+            fileList.innerHTML = '<h3 style="margin-bottom: 1rem;">Selected Files:</h3>';
+
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2';
+                fileItem.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="badge badge-primary mr-3">${index + 1}</span>
+                        <div>
+                            <p class="font-medium">${file.name}</p>
+                            <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
+                        </div>
+                    </div>
+                    <span class="text-success-600">✓</span>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        // Format total size
+        function formatTotalSize(files) {
+            const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+            return formatFileSize(totalBytes);
+        }
+
+        // Reset file selection
+        function resetFileSelection() {
+            selectedFiles = [];
+            fileInput.value = '';
+            fileLabel.classList.remove('has-file');
+            fileLabel.innerHTML = `
+                <div class="file-icon">📁</div>
+                <div>
+                    <strong>Click to browse</strong> or drag & drop your files here
+                </div>
+                <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6c757d;">
+                    Supported format: CSV | Select 1-5 files
+                </div>
+            `;
+            fileList.style.display = 'none';
+            uploadBtn.disabled = true;
+            uploadBtnText.textContent = 'Select file(s) to continue';
+        }
 
         // Handle drag & drop
         fileLabel.addEventListener('dragover', (e) => {
@@ -333,64 +439,88 @@
             fileLabel.style.borderColor = 'var(--border-color)';
             fileLabel.style.background = '#f8f9fa';
 
-            const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.csv')) {
-                fileInput.files = e.dataTransfer.files;
-                fileInput.dispatchEvent(new Event('change'));
-            } else {
-                alert('Please drop a valid CSV file');
+            const files = Array.from(e.dataTransfer.files);
+            const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+
+            if (csvFiles.length === 0) {
+                showToastError('Please drop CSV files only');
+                return;
             }
+
+            if (csvFiles.length > 5) {
+                showToastError('Maximum 5 files allowed');
+                return;
+            }
+
+            // Create a new FileList-like object
+            const dt = new DataTransfer();
+            csvFiles.forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+            fileInput.dispatchEvent(new Event('change'));
         });
 
-        // Handle upload
+        // Handle upload with ApiService
         uploadBtn.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('Please select a file first');
+            if (selectedFiles.length === 0) {
+                showToastError('Please select at least one file');
                 return;
             }
 
             try {
-                // Show loading state
+                // Show loading
+                showLoader('Uploading ' + selectedFiles.length + ' file(s)...');
                 uploadBtn.disabled = true;
                 uploadBtnText.innerHTML = '<span class="spinner"></span> Uploading...';
                 progressBar.style.display = 'block';
-                statusMessage.innerHTML = '<p class="info">Uploading your file to the server...</p>';
 
-                // Create form data
-                const formData = new FormData();
-                formData.append('file', file);
+                // Upload using ApiService
+                const response = await ApiService.uploadMultipleFiles(selectedFiles);
 
-                // Upload file
-                const response = await fetch('http://localhost:8000/api/upload/csv', {
-                    method: 'POST',
-                    body: formData
-                });
+                // Save file IDs
+                ApiService.setFileIds(response.file_ids);
 
-                if (!response.ok) {
-                    throw new Error('Upload failed');
-                }
+                // Mark upload as complete
+                markStepComplete('upload');
 
-                const data = await response.json();
-                const fileId = data.file_id;
-
-                // Save to localStorage
-                localStorage.setItem('currentFileId', fileId);
+                // Hide loading
+                hideLoader();
 
                 // Show success
-                statusMessage.innerHTML = '<p class="success">✓ Upload successful! Redirecting to schema configuration...</p>';
+                showToastSuccess(`${response.file_ids.length} file(s) uploaded successfully!`);
+                statusMessage.innerHTML = `<p class="success">✓ Upload successful! Redirecting to schema configuration...</p>`;
 
-                // Redirect to schema page with file_id
+                // Redirect to schema page
                 setTimeout(() => {
-                    window.location.href = `schema.html?file_id=${fileId}`;
+                    window.location.href = 'schema.html';
                 }, 1500);
 
             } catch (error) {
                 console.error('Upload error:', error);
+                hideLoader();
+                showToastError('Upload failed: ' + error.message);
                 statusMessage.innerHTML = '<p class="error">✗ Upload failed. Please try again.</p>';
                 uploadBtn.disabled = false;
-                uploadBtnText.textContent = 'Upload File';
+                uploadBtnText.textContent = `Upload ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`;
                 progressBar.style.display = 'none';
+            }
+        });
+
+        // Handle demo mode button
+        const demoBtn = document.getElementById('demoBtn');
+        demoBtn.addEventListener('click', async () => {
+            try {
+                demoBtn.disabled = true;
+                demoBtn.innerHTML = '<span class="spinner"></span> Loading demo...';
+                showLoader('Loading demo dataset...');
+
+                await ApiService.loadDemoDataset();
+                markStepComplete('upload');
+
+            } catch (error) {
+                console.error('Demo load error:', error);
+                demoBtn.disabled = false;
+                demoBtn.textContent = '🎯 Try Demo Dataset';
+                hideLoader();
             }
         });
     </script>

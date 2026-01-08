@@ -3539,3 +3539,57 @@ class ReportEngine:
         pdf_path = self.save_pdf(flowables)
         
         return pdf_path
+    
+    @staticmethod
+    def batch_generate_reports(
+        file_ids: List[str],
+        file_manager: Any,
+        report_config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate reports for multiple files with unique filenames
+        
+        Args:
+            file_ids: List of file identifiers
+            file_manager: FileManager instance
+            report_config: Optional configuration for report generation
+            
+        Returns:
+            Dictionary mapping file_id to report paths:
+            {
+                "<file_id>": {"report_path": "...", "status": "ok"},
+                "<file_id>": {"error": "..."}
+            }
+        """
+        results = {}
+        report_config = report_config or {}
+        
+        for file_id in file_ids:
+            try:
+                # Initialize report engine for this file
+                engine = ReportEngine(file_id)
+                
+                # Set metadata if provided
+                if "metadata" in report_config:
+                    engine.metadata = report_config["metadata"]
+                
+                # Load analysis results if provided
+                if "cleaning_results" in report_config:
+                    engine.cleaning_results = report_config["cleaning_results"].get(file_id)
+                if "weighting_results" in report_config:
+                    engine.weighting_results = report_config["weighting_results"].get(file_id)
+                if "analysis_results" in report_config:
+                    engine.analysis_results = report_config["analysis_results"].get(file_id)
+                
+                # Generate report
+                report_path = engine.generate_full_report()
+                
+                results[file_id] = {
+                    "report_path": report_path,
+                    "status": "ok"
+                }
+                
+            except Exception as e:
+                results[file_id] = {"error": str(e)}
+        
+        return results

@@ -18,7 +18,7 @@ from models.ml_models import (
 )
 from utils.file_manager import FileManager
 
-router = APIRouter(prefix="/api/ml", tags=["Machine Learning"])
+router = APIRouter(prefix="/api/ml", tags=["07 Machine Learning"])
 
 # File manager instance
 file_manager = FileManager()
@@ -59,35 +59,68 @@ async def run_classification(request: ClassificationRequest) -> Dict[str, Any]:
     Returns accuracy, confusion matrix, classification report, and feature importances.
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = MLEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        if request.method == "logistic_regression":
-            result = engine.logistic_regression(
-                target_column=request.target_column,
-                feature_columns=request.feature_columns,
-                test_size=request.test_size,
-                random_state=request.random_state
-            )
-        else:  # random_forest
-            result = engine.random_forest_classifier(
-                target_column=request.target_column,
-                feature_columns=request.feature_columns,
-                n_trees=request.n_trees,
-                max_depth=request.max_depth,
-                test_size=request.test_size,
-                random_state=request.random_state
-            )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "method": request.method,
-            "result": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = MLEngine(df)
+                
+                if request.method == "logistic_regression":
+                    result = engine.logistic_regression(
+                        target_column=request.target_column,
+                        feature_columns=request.feature_columns,
+                        test_size=request.test_size,
+                        random_state=request.random_state
+                    )
+                else:  # random_forest
+                    result = engine.random_forest_classifier(
+                        target_column=request.target_column,
+                        feature_columns=request.feature_columns,
+                        n_trees=request.n_trees,
+                        max_depth=request.max_depth,
+                        test_size=request.test_size,
+                        random_state=request.random_state
+                    )
+                
+                results_per_file[fid] = {
+                    "method": request.method,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Classification error: {str(e)}")
 
@@ -104,35 +137,68 @@ async def run_regression(request: RegressionRequest) -> Dict[str, Any]:
     Returns R², MSE, MAE, coefficients, and predictions.
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = MLEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        if request.method == "linear_regression":
-            result = engine.linear_regression(
-                target_column=request.target_column,
-                feature_columns=request.feature_columns,
-                test_size=request.test_size,
-                random_state=request.random_state
-            )
-        else:  # random_forest
-            result = engine.random_forest_regressor(
-                target_column=request.target_column,
-                feature_columns=request.feature_columns,
-                n_trees=request.n_trees,
-                max_depth=request.max_depth,
-                test_size=request.test_size,
-                random_state=request.random_state
-            )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "method": request.method,
-            "result": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = MLEngine(df)
+                
+                if request.method == "linear_regression":
+                    result = engine.linear_regression(
+                        target_column=request.target_column,
+                        feature_columns=request.feature_columns,
+                        test_size=request.test_size,
+                        random_state=request.random_state
+                    )
+                else:  # random_forest
+                    result = engine.random_forest_regressor(
+                        target_column=request.target_column,
+                        feature_columns=request.feature_columns,
+                        n_trees=request.n_trees,
+                        max_depth=request.max_depth,
+                        test_size=request.test_size,
+                        random_state=request.random_state
+                    )
+                
+                results_per_file[fid] = {
+                    "method": request.method,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Regression error: {str(e)}")
 
@@ -145,25 +211,58 @@ async def run_clustering(request: ClusteringRequest) -> Dict[str, Any]:
     Returns cluster assignments, centroids, inertia, and silhouette score.
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = MLEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        result = engine.kmeans(
-            feature_columns=request.feature_columns,
-            n_clusters=request.n_clusters,
-            max_iterations=request.max_iterations,
-            random_state=request.random_state
-        )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "n_clusters": request.n_clusters,
-            "result": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = MLEngine(df)
+                
+                result = engine.kmeans(
+                    feature_columns=request.feature_columns,
+                    n_clusters=request.n_clusters,
+                    max_iterations=request.max_iterations,
+                    random_state=request.random_state
+                )
+                
+                results_per_file[fid] = {
+                    "n_clusters": request.n_clusters,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Clustering error: {str(e)}")
 
@@ -176,23 +275,56 @@ async def run_pca(request: PCARequest) -> Dict[str, Any]:
     Returns principal components, explained variance ratios, and loadings.
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = MLEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        result = engine.pca(
-            feature_columns=request.feature_columns,
-            n_components=request.n_components
-        )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "n_components": request.n_components,
-            "result": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = MLEngine(df)
+                
+                result = engine.pca(
+                    feature_columns=request.feature_columns,
+                    n_components=request.n_components
+                )
+                
+                results_per_file[fid] = {
+                    "n_components": request.n_components,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PCA error: {str(e)}")
 
@@ -207,63 +339,96 @@ async def analyze_feature_importance(request: FeatureImportanceRequest) -> Dict[
     - random_forest: Random forest-based importance
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = MLEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Get feature columns
-        feature_cols = request.feature_columns
-        if feature_cols is None:
-            feature_cols = [col for col in df.columns 
-                          if col != request.target_column and 
-                          pd.api.types.is_numeric_dtype(df[col])]
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        if request.method == "correlation":
-            # Correlation-based importance
-            import numpy as np
-            importances = {}
-            target = df[request.target_column].values
-            
-            for col in feature_cols:
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    mask = ~(np.isnan(df[col].values) | np.isnan(target))
-                    if np.sum(mask) > 2:
-                        corr = np.corrcoef(df[col].values[mask], target[mask])[0, 1]
-                        importances[col] = float(abs(corr)) if not np.isnan(corr) else 0
-                    else:
-                        importances[col] = 0
-            
-            # Sort by importance
-            sorted_importance = sorted(importances.items(), key=lambda x: x[1], reverse=True)
-            
-            result = {
-                "method": "correlation",
-                "importances": [{"feature": k, "importance": v} for k, v in sorted_importance],
-                "n_features": len(sorted_importance)
-            }
-        else:  # random_forest
-            # Use random forest to get importance
-            rf_result = engine.random_forest_regressor(
-                target_column=request.target_column,
-                feature_columns=feature_cols,
-                n_trees=50,
-                test_size=0.2
-            )
-            
-            result = {
-                "method": "random_forest",
-                "importances": rf_result.get("feature_importance", []),
-                "n_features": len(feature_cols)
-            }
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = MLEngine(df)
+                
+                # Get feature columns
+                feature_cols = request.feature_columns
+                if feature_cols is None:
+                    feature_cols = [col for col in df.columns 
+                                  if col != request.target_column and 
+                                  pd.api.types.is_numeric_dtype(df[col])]
+                
+                if request.method == "correlation":
+                    # Correlation-based importance
+                    import numpy as np
+                    importances = {}
+                    target = df[request.target_column].values
+                    
+                    for col in feature_cols:
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            mask = ~(np.isnan(df[col].values) | np.isnan(target))
+                            if np.sum(mask) > 2:
+                                corr = np.corrcoef(df[col].values[mask], target[mask])[0, 1]
+                                importances[col] = float(abs(corr)) if not np.isnan(corr) else 0
+                            else:
+                                importances[col] = 0
+                    
+                    # Sort by importance
+                    sorted_importance = sorted(importances.items(), key=lambda x: x[1], reverse=True)
+                    
+                    result = {
+                        "method": "correlation",
+                        "importances": [{"feature": k, "importance": v} for k, v in sorted_importance],
+                        "n_features": len(sorted_importance)
+                    }
+                else:  # random_forest
+                    # Use random forest to get importance
+                    rf_result = engine.random_forest_regressor(
+                        target_column=request.target_column,
+                        feature_columns=feature_cols,
+                        n_trees=50,
+                        test_size=0.2
+                    )
+                    
+                    result = {
+                        "method": "random_forest",
+                        "importances": rf_result.get("feature_importance", []),
+                        "n_features": len(feature_cols)
+                    }
+                
+                results_per_file[fid] = {
+                    "target_column": request.target_column,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "target_column": request.target_column,
-            "result": result
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Feature importance error: {str(e)}")
 

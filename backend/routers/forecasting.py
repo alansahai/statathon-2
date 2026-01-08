@@ -12,7 +12,7 @@ from services.forecasting_engine import ForecastingEngine
 from models.forecasting_models import ForecastRequest, DecomposeRequest, TimeSeriesAnalysisRequest
 from utils.file_manager import FileManager
 
-router = APIRouter(prefix="/api/forecasting", tags=["Forecasting"])
+router = APIRouter(prefix="/api/forecasting", tags=["06 Forecasting"])
 
 # File manager instance
 file_manager = FileManager()
@@ -53,35 +53,68 @@ async def run_forecast(request: ForecastRequest) -> Dict[str, Any]:
     - arima: ARIMA with auto-selected or manual p,d,q parameters
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = ForecastingEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        result = engine.run_forecast(
-            value_column=request.value_column,
-            method=request.method,
-            time_column=request.time_column,
-            forecast_periods=request.forecast_periods,
-            window_size=request.window_size,
-            alpha=request.alpha,
-            beta=request.beta,
-            gamma=request.gamma,
-            seasonal_period=request.seasonal_period,
-            p=request.p,
-            d=request.d,
-            q=request.q,
-            include_confidence_interval=request.include_confidence_interval,
-            confidence_level=request.confidence_level
-        )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "method": request.method,
-            "result": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = ForecastingEngine(df)
+                
+                result = engine.run_forecast(
+                    value_column=request.value_column,
+                    method=request.method,
+                    time_column=request.time_column,
+                    forecast_periods=request.forecast_periods,
+                    window_size=request.window_size,
+                    alpha=request.alpha,
+                    beta=request.beta,
+                    gamma=request.gamma,
+                    seasonal_period=request.seasonal_period,
+                    p=request.p,
+                    d=request.d,
+                    q=request.q,
+                    include_confidence_interval=request.include_confidence_interval,
+                    confidence_level=request.confidence_level
+                )
+                
+                results_per_file[fid] = {
+                    "method": request.method,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forecast error: {str(e)}")
 
@@ -96,25 +129,58 @@ async def decompose_series(request: DecomposeRequest) -> Dict[str, Any]:
     - multiplicative: y = trend * seasonal * residual
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = ForecastingEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        result = engine.seasonal_decompose(
-            value_column=request.value_column,
-            time_column=request.time_column,
-            period=request.period,
-            model=request.model
-        )
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "model": request.model,
-            "result": result
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = ForecastingEngine(df)
+                
+                result = engine.seasonal_decompose(
+                    value_column=request.value_column,
+                    time_column=request.time_column,
+                    period=request.period,
+                    model=request.model
+                )
+                
+                results_per_file[fid] = {
+                    "model": request.model,
+                    "result": result
+                }
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
+        
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
+        
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if errors:
+            response["errors"] = errors
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Decomposition error: {str(e)}")
 
@@ -125,75 +191,105 @@ async def analyze_time_series(request: TimeSeriesAnalysisRequest) -> Dict[str, A
     Analyze a time series for stationarity, trends, and seasonality.
     """
     try:
-        df = _load_dataframe(request.file_id, request.use_weighted)
-        engine = ForecastingEngine(df)
+        # Normalize file_ids
+        file_ids = request.file_ids
+        if not file_ids or len(file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No file_ids provided")
+        if len(file_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 files allowed")
         
-        # Detect time column if not provided
-        time_col = request.time_column
-        if time_col is None:
-            detected = engine.detect_time_column()
-            if detected["detected"]:
-                time_col = detected["column"]
+        # Process each file
+        results_per_file = {}
+        errors = {}
         
-        # Get series
-        values = df[request.value_column].dropna().values
-        n = len(values)
+        for fid in file_ids:
+            try:
+                df = _load_dataframe(fid, request.use_weighted)
+                engine = ForecastingEngine(df)
+                
+                # Detect time column if not provided
+                time_col = request.time_column
+                if time_col is None:
+                    detected = engine.detect_time_column()
+                    if detected["detected"]:
+                        time_col = detected["column"]
+                
+                # Get series
+                values = df[request.value_column].dropna().values
+                n = len(values)
+                
+                # Basic statistics
+                from scipy import stats
+                import numpy as np
+                
+                # Trend test (linear regression)
+                x = np.arange(n)
+                slope, intercept, r_value, p_value, std_err = stats.linregress(x, values)
+                
+                trend_direction = "stable"
+                if p_value < 0.05:
+                    trend_direction = "increasing" if slope > 0 else "decreasing"
+                
+                # Seasonality check via autocorrelation
+                detected_seasonality = {"detected": False}
+                for period in [4, 7, 12, 24, 52]:
+                    if n > 2 * period:
+                        vals_centered = values - np.mean(values)
+                        autocorr = np.corrcoef(vals_centered[:-period], vals_centered[period:])[0, 1]
+                        if not np.isnan(autocorr) and abs(autocorr) > 0.3:
+                            detected_seasonality = {
+                                "detected": True,
+                                "period": period,
+                                "autocorrelation": float(autocorr)
+                            }
+                            break
+                
+                result = {
+                    "n_observations": n,
+                    "time_column": time_col,
+                    "value_column": request.value_column,
+                    "basic_stats": {
+                        "mean": float(np.mean(values)),
+                        "std": float(np.std(values)),
+                        "min": float(np.min(values)),
+                        "max": float(np.max(values)),
+                        "median": float(np.median(values))
+                    },
+                    "trend": {
+                        "direction": trend_direction,
+                        "slope": float(slope),
+                        "r_squared": float(r_value ** 2),
+                        "p_value": float(p_value)
+                    },
+                    "seasonality": detected_seasonality
+                }
+                
+                results_per_file[fid] = {"result": result}
+                
+            except ValueError as e:
+                errors[fid] = str(e)
+            except HTTPException as e:
+                errors[fid] = e.detail
+            except Exception as e:
+                errors[fid] = str(e)
         
-        # Basic statistics
-        from scipy import stats
-        import numpy as np
+        # Determine status
+        status = "success" if len(results_per_file) == len(file_ids) else "partial_success"
         
-        # Trend test (linear regression)
-        x = np.arange(n)
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x, values)
-        
-        trend_direction = "stable"
-        if p_value < 0.05:
-            trend_direction = "increasing" if slope > 0 else "decreasing"
-        
-        # Seasonality check via autocorrelation
-        for period in [4, 7, 12, 24, 52]:
-            if n > 2 * period:
-                vals_centered = values - np.mean(values)
-                autocorr = np.corrcoef(vals_centered[:-period], vals_centered[period:])[0, 1]
-                if not np.isnan(autocorr) and abs(autocorr) > 0.3:
-                    detected_seasonality = {
-                        "detected": True,
-                        "period": period,
-                        "autocorrelation": float(autocorr)
-                    }
-                    break
-        else:
-            detected_seasonality = {"detected": False}
-        
-        result = {
-            "n_observations": n,
-            "time_column": time_col,
-            "value_column": request.value_column,
-            "basic_stats": {
-                "mean": float(np.mean(values)),
-                "std": float(np.std(values)),
-                "min": float(np.min(values)),
-                "max": float(np.max(values)),
-                "median": float(np.median(values))
-            },
-            "trend": {
-                "direction": trend_direction,
-                "slope": float(slope),
-                "r_squared": float(r_value ** 2),
-                "p_value": float(p_value)
-            },
-            "seasonality": detected_seasonality
+        response = {
+            "success": status == "success",
+            "status": status,
+            "file_ids": file_ids,
+            "results": results_per_file
         }
         
-        return {
-            "success": True,
-            "file_id": request.file_id,
-            "result": result
-        }
+        if errors:
+            response["errors"] = errors
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, List
 import pandas as pd
 import numpy as np
 import json
@@ -9,14 +9,21 @@ from pathlib import Path
 from utils.file_manager import FileManager
 from utils.schema_validator import SchemaValidator
 
-router = APIRouter(tags=["Upload"])
+router = APIRouter(tags=["01 Upload"])
 
 file_manager = FileManager(base_storage_path="temp_uploads")
 schema_validator = SchemaValidator()
 
+
+@router.get("/ping")
+async def ping():
+    """Health check endpoint for upload router"""
+    return {"status": "ok", "message": "Upload router is operational"}
+
 MAX_FILE_SIZE = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 PREVIEW_ROWS = 10
+MAX_MULTIPLE_FILES = 5
 
 
 def make_json_safe(data):
@@ -32,19 +39,155 @@ def make_json_safe(data):
     return data
 
 
-@router.post("/csv")
-async def upload_csv(file: UploadFile = File(...)):
-    return await _process_upload(file, expected_type="csv")
+@router.post("/single")
+async def upload_single_file(file: UploadFile = File(...)):
+    """
+    STEP 01 UPLOAD:
+    Upload a single CSV/Excel file for analysis.
+    
+    This is the entry point for the entire pipeline. Upload your dataset here
+    to receive a unique file_id for use in all subsequent operations.
+    
+    **Accepted Formats:** .csv, .xlsx, .xls
+    **Max Size:** 50MB
+    
+    **Returns:**
+    ```json
+    {
+        "status": "success",
+        "step": "upload",
+        "file_ids": ["uuid-123"],
+        "results": {
+            "uuid-123": {
+                "file_id": "uuid-123",
+                "filename": "survey_data.csv",
+                "row_count": 1000,
+                "column_count": 25,
+                "columns": ["age", "gender", ...],
+                "preview": [{...}, {...}]
+            }
+        }
+    }
+    ```
+    """
+    try:
+        result = await _process_upload(file, expected_type="auto")
+        file_id = result["file_info"]["file_id"]
+        
+        return {
+            "status": "success",
+            "step": "upload",
+            "file_ids": [file_id],
+            "results": {
+                file_id: result
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
-@router.post("/excel")
-async def upload_excel(file: UploadFile = File(...)):
-    return await _process_upload(file, expected_type="excel")
-
-
-@router.post("/file")
-async def upload_file(file: UploadFile = File(...)):
-    return await _process_upload(file, expected_type="auto")
+@router.post("/multiple")
+async def upload_multiple_files(files: List[UploadFile] = File(...)):
+    """
+    STEP 01 UPLOAD:
+    Upload multiple CSV files (up to 5 files at once).
+    
+    Use this for batch processing. All uploaded files will receive unique file_ids
+    that can be passed together to subsequent pipeline endpoints.
+    
+    **Max Files:** 5
+    **Accepted Formats:** .csv, .xlsx, .xls
+    **Max Size per File:** 50MB
+    
+    **Input:**
+    ```
+    files: array of file uploads
+    ```
+    
+    **Returns:**
+    ```json
+    {
+        "status": "success",
+        "step": "upload",
+        "file_ids": ["uuid-1", "uuid-2"],
+        "results": {
+            "uuid-1": {...},
+            "uuid-2": {...}
+        }
+    }
+    ```
+    """
+    try:
+        # Validate file count
+        if not files or len(files) == 0:
+            raise HTTPException(status_code=400, detail="No files provided")
+        
+        if len(files) > MAX_MULTIPLE_FILES:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Too many files. Maximum {MAX_MULTIPLE_FILES} files allowed"
+            )
+        
+        uploaded_files = []
+        errors = []
+        results_dict = {}
+        
+        for idx, file in enumerate(files):
+            try:
+                # Process each file
+                result = await _process_upload(file, expected_type="auto")
+                file_id = result["file_info"]["file_id"]
+                
+                # Store result
+                results_dict[file_id] = result
+                
+                # Track uploaded file info
+                uploaded_files.append({
+                    "file_id": file_id,
+                    "filename": result["file_info"]["filename"],
+                    "row_count": result["file_info"]["row_count"],
+                    "column_count": result["file_info"]["column_count"]
+                })
+                
+            except HTTPException as e:
+                errors.append({
+                    "file_index": idx,
+                    "filename": file.filename if file.filename else f"file_{idx}",
+                    "error": e.detail
+                })
+            except Exception as e:
+                errors.append({
+                    "file_index": idx,
+                    "filename": file.filename if file.filename else f"file_{idx}",
+                    "error": str(e)
+                })
+        
+        # If no files were successfully uploaded
+        if not uploaded_files:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Failed to upload any files. Errors: {errors}"
+            )
+        
+        # Return standardized response
+        response = {
+            "status": "success" if not errors else "partial_success",
+            "step": "upload",
+            "file_ids": [f["file_id"] for f in uploaded_files],
+            "results": results_dict
+        }
+        
+        if errors:
+            response["errors"] = errors
+        
+        return response
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 async def _process_upload(file: UploadFile, expected_type: str = "auto") -> Dict[str, Any]:

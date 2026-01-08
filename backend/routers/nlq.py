@@ -18,7 +18,7 @@ from services.ml_engine import MLEngine
 from services.insight_engine import InsightEngine
 
 
-router = APIRouter(prefix="/api/nlq", tags=["Natural Language Query"])
+router = APIRouter(prefix="/api/nlq", tags=["09 NLQ Engine"])
 
 
 class NLQRequest(BaseModel):
