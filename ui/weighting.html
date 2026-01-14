@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey Weighting - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <!-- File Info -->
+        <div id="fileInfo" style="margin-bottom: 2rem;"></div>
+
+        <div class="hero text-center mb-6">
+            <h1>⚖️ Survey Weighting</h1>
+            <p>Calculate and validate survey weights for representative analysis</p>
+        </div>
+
+        <!-- Results Container (tabs will be injected here) -->
+        <div id="results-container"></div>
+
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p class="mt-3">Calculating weights...</p>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons">
+        <button id="backBtn" class="btn btn-secondary">← Previous Step</button>
+        <button id="continueBtn" class="btn btn-primary">Continue →</button>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/workflow.js"></script>
+    <script src="assets/ui_helpers.js"></script>
+    <script src="assets/weighting.js"></script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        (async () => {
+            try {
+                await UIHelper.insertAssistantComponent();
+                if (window.Assistant) Assistant.init();
+            } catch (error) {
+                console.warn('Assistant initialization failed:', error);
+            }
+        })();
+    </script>
+</body>
+
+</html>

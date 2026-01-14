@@ -1,0 +1,61 @@
+// =======================================================================
+// analysis.js – FINAL MVP VERSION (StatFlow)
+// Uses backend /api/analyze to compute descriptive statistics
+// =======================================================================
+
+window.addEventListener("DOMContentLoaded", () => initAnalysis());
+
+function initAnalysis() {
+    document.getElementById("runAnalysisBtn").addEventListener("click", runAnalysis);
+
+    document.getElementById("fileInfo").innerHTML =
+        `<b>File:</b> ${sessionStorage.getItem("uploadedFileName")}`;
+}
+
+async function runAnalysis() {
+    const fileId = sessionStorage.getItem("uploadedFileId");
+
+    const url = `${window.API_BASE}/analysis/descriptive`;
+
+    const payload = { file_id: fileId };
+
+    document.getElementById("analysisStatus").innerText = "Analyzing...";
+
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        console.log("[analysis.js] Response:", data);
+
+        if (data.status !== "success") throw new Error(data.error || "Analysis failed");
+
+        renderSummary(data.descriptive_stats || {});
+
+        setTimeout(() => {
+            window.location.href = "/ui/insight.html";
+        }, 1400);
+
+    } catch (err) {
+        document.getElementById("analysisStatus").innerText = "Error: " + err.message;
+    }
+}
+
+function renderSummary(summary) {
+    let html = "<table><tr><th>Variable</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th></tr>";
+
+    Object.keys(summary).forEach(k => {
+        const s = summary[k];
+        html += `<tr>
+            <td>${k}</td><td>${s.mean}</td><td>${s.median}</td>
+            <td>${s.min}</td><td>${s.max}</td>
+        </tr>`;
+    });
+
+    html += "</table>";
+
+    document.getElementById("analysisResults").innerHTML = html;
+}

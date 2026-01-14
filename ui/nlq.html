@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Language Query - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .nlq-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+        }
+
+        .hero-nlq {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #8e44ad, #6c3483);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-nlq h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-nlq p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .examples-box {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .examples-box h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .example-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #8e44ad;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-item:hover {
+            background: #e8f4fd;
+            transform: translateX(5px);
+        }
+
+        .example-item .example-icon {
+            margin-right: 0.5rem;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chat-messages {
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .chat-message {
+            display: flex;
+            margin-bottom: 1.5rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            justify-content: flex-end;
+        }
+
+        .chat-message.system {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            word-wrap: break-word;
+        }
+
+        .chat-message.user .message-bubble {
+            background: linear-gradient(135deg, var(--primary-color), #2c6ba8);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .chat-message.system .message-bubble {
+            background: white;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-header {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .message-content {
+            line-height: 1.6;
+        }
+
+        .message-metadata {
+            font-size: 0.8rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0.8;
+        }
+
+        .chat-message.system .message-metadata {
+            border-top-color: var(--border-color);
+        }
+
+        .metadata-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-message.system .metadata-badge {
+            background: #e8f4fd;
+            color: var(--primary-color);
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            font-size: 1rem;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8e44ad, #6c3483);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(142, 68, 173, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .results-table th {
+            background: #8e44ad;
+            color: white;
+            padding: 0.5rem;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .results-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .empty-chat {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-chat-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 1rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="container">
+        <div class="nlq-container">
+            <div class="hero-nlq">
+                <h1>💬 Natural Language Query</h1>
+                <p>Ask questions about your data in plain English and get instant insights</p>
+            </div>
+
+            <div class="examples-box">
+                <h3>💡 Try These Example Questions</h3>
+                <div class="example-item" data-query="Compare income by gender">
+                    <span class="example-icon">🔀</span>
+                    <strong>Compare:</strong> "Compare male vs female income" or "Compare income by gender"
+                </div>
+                <div class="example-item" data-query="Show trend of sales over time">
+                    <span class="example-icon">📈</span>
+                    <strong>Trends:</strong> "Show trend of sales over time" or "What is the pattern of revenue?"
+                </div>
+                <div class="example-item" data-query="What are the risk groups?">
+                    <span class="example-icon">⚠️</span>
+                    <strong>Risk Analysis:</strong> "What are the risk groups?" or "Identify high-risk customers"
+                </div>
+                <div class="example-item" data-query="Show distribution of age">
+                    <span class="example-icon">📊</span>
+                    <strong>Distribution:</strong> "Show distribution of age" or "How is income distributed?"
+                </div>
+                <div class="example-item" data-query="Predict customer churn">
+                    <span class="example-icon">🔮</span>
+                    <strong>Predictions:</strong> "Predict customer churn" or "Build a forecasting model"
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <h2>💬 Chat with Your Data</h2>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="empty-chat">
+                        <div class="empty-chat-icon">💬</div>
+                        <p><strong>Start a conversation with your data</strong></p>
+                        <p style="font-size: 0.9rem;">Type a question below or click an example above</p>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <textarea id="chatInput" class="chat-input"
+                        placeholder="Ask your data... (e.g., Compare income by region)" rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn">
+                        ➤
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📄 Next Steps</h2>
+                <p style="margin-bottom: 1rem;">Ready to generate a comprehensive PDF report with all your findings?</p>
+                <button id="reportBtn" class="btn btn-success btn-large">
+                    📥 Download PDF Report →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/api.js"></script>
+    <script src="assets/app.js"></script>
+    <script>
+        let currentFileName = null;
+        let messageHistory = [];
+
+        // Check for uploaded file in sessionStorage
+        currentFileName = sessionStorage.getItem('uploadedFileName');
+
+        if (!currentFileName) {
+            alert('No file uploaded. Please upload a file first.');
+            window.location.href = 'index.html';
+        }
+
+        console.log('[nlq.html] Using file:', currentFileName);
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Click example to fill input
+        document.querySelectorAll('.example-item').forEach(item => {
+            item.addEventListener('click', () => {
+                chatInput.value = item.dataset.query;
+                chatInput.focus();
+            });
+        });
+
+        // Auto-resize textarea
+        chatInput.addEventListener('input', () => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+        });
+
+        // Send on Enter (but Shift+Enter for new line)
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        function clearEmptyState() {
+            const emptyChat = chatMessages.querySelector('.empty-chat');
+            if (emptyChat) {
+                emptyChat.remove();
+            }
+        }
+
+        function addUserMessage(query) {
+            clearEmptyState();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message user';
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-header">You</div>
+                    <div class="message-content">${escapeHtml(query)}</div>
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message system';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingDiv = document.getElementById('typingIndicator');
+            if (typingDiv) {
+                typingDiv.remove();
+            }
+        }
+
+        function addSystemMessage(data) {
+            removeTypingIndicator();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message system';
+
+            let contentHTML = `<div class="message-content">${escapeHtml(data.narrative || 'Analysis complete.')}</div>`;
+
+            // Add table if results exist
+            if (data.result && typeof data.result === 'object') {
+                if (Array.isArray(data.result)) {
+                    // Array of objects - create table
+                    if (data.result.length > 0) {
+                        const keys = Object.keys(data.result[0]);
+                        contentHTML += `
+                            <table class="results-table">
+                                <thead>
+                                    <tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr>
+                                </thead>
+                                <tbody>
+                                    ${data.result.slice(0, 5).map(row =>
+                            `<tr>${keys.map(k => `<td>${row[k]}</td>`).join('')}</tr>`
+                        ).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                        if (data.result.length > 5) {
+                            contentHTML += `<p style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-muted);">Showing 5 of ${data.result.length} results</p>`;
+                        }
+                    }
+                }
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-header">StatFlow AI</div>
+                    ${contentHTML}
+                    <div class="message-metadata">
+                        <span class="metadata-badge">🎯 ${data.intent || 'analysis'}</span>
+                        <span class="metadata-badge">📊 ${(data.columns || []).length} columns</span>
+                        <span class="metadata-badge">✓ ${data.confidence ? Math.round(data.confidence * 100) : 0}%</span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addErrorMessage(error) {
+            removeTypingIndicator();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message system';
+            messageDiv.innerHTML = `
+                <div class="message-bubble" style="border-color: #dc3545;">
+                    <div class="message-header" style="color: #dc3545;">Error</div>
+                    <div class="message-content">Sorry, I couldn't process that query. ${escapeHtml(error)}</div>
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const query = chatInput.value.trim();
+
+            if (!query) {
+                return;
+            }
+
+            if (!currentFileId) {
+                alert('No file ID found. Please upload a file first.');
+                return;
+            }
+
+            // Disable input
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // Add user message
+            addUserMessage(query);
+
+            // Clear input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            // Show typing indicator
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('http://localhost:8000/api/nlq/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: currentFileName,
+                        query: query
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Query failed');
+                }
+
+                const data = await response.json();
+
+                // Save to history
+                messageHistory.push({ query, response: data });
+
+                // Add system response
+                addSystemMessage(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                addErrorMessage(error.message);
+            } finally {
+                // Re-enable input
+                chatInput.disabled = false;
+                sendBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Report navigation
+        document.getElementById('reportBtn')?.addEventListener('click', () => {
+            window.location.href = `report.html?file=${currentFileId}`;
+        });
+    </script>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons">
+        <button id="backBtn" class="btn btn-secondary">← Previous Step</button>
+        <button id="continueBtn" class="btn btn-primary">Continue →</button>
+    </div>
+
+    <script src="assets/workflow.js"></script>
+    <script src="assets/ui_helpers.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileId = WorkflowService?.getFileId();
+            if (fileId && typeof UIHelper !== 'undefined') {
+                UIHelper.renderProgressTimeline?.('nlq');
+                UIHelper.renderBreadcrumbs?.('nlq.html');
+                UIHelper.enableBackButton?.(() => WorkflowService.goToDashboard(fileId));
+                UIHelper.enableContinueButton?.(() => WorkflowService.goToForecasting(fileId));
+            }
+        });
+    </script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        (async () => {
+            await UIHelper.insertAssistantComponent();
+            if (window.Assistant) Assistant.init();
+        })();
+    </script>
+</body>
+
+</html>

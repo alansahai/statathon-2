@@ -1,0 +1,190 @@
+<div class="steps-container">
+    <div class="steps">
+        <div class="step" data-step="0">
+            <div class="step-number">1</div>
+            <div class="step-label">Upload</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="1">
+            <div class="step-number">2</div>
+            <div class="step-label">Schema</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="2">
+            <div class="step-number">3</div>
+            <div class="step-label">Cleaning</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="3">
+            <div class="step-number">4</div>
+            <div class="step-label">Weighting</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="4">
+            <div class="step-number">5</div>
+            <div class="step-label">Analysis</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="5">
+            <div class="step-number">6</div>
+            <div class="step-label">Forecasting</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="6">
+            <div class="step-number">7</div>
+            <div class="step-label">ML</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="7">
+            <div class="step-number">8</div>
+            <div class="step-label">Insights</div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" data-step="8">
+            <div class="step-number">9</div>
+            <div class="step-label">Report</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .steps-container {
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 20px 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .steps {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-width: 80px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .step-number {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .step-label {
+        font-size: 0.85rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .step-divider {
+        width: 40px;
+        height: 2px;
+        background: #e5e7eb;
+        margin: 0 4px;
+        transition: all 0.3s ease;
+    }
+
+    .step.active .step-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        transform: scale(1.1);
+    }
+
+    .step.active .step-label {
+        color: #667eea;
+        font-weight: 600;
+    }
+
+    .step.completed .step-number {
+        background: #10b981;
+        color: white;
+    }
+
+    .step.completed .step-label {
+        color: #059669;
+    }
+
+    .step.completed+.step-divider {
+        background: #10b981;
+    }
+
+    .step:hover:not(.active) .step-number {
+        background: #d1d5db;
+        transform: scale(1.05);
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 900px) {
+        .steps {
+            overflow-x: auto;
+            justify-content: flex-start;
+            padding-bottom: 10px;
+        }
+
+        .step {
+            min-width: 70px;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            font-size: 0.85rem;
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+        }
+
+        .step-divider {
+            width: 30px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .steps-container {
+            padding: 15px 0;
+        }
+
+        .step {
+            min-width: 60px;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            font-size: 0.8rem;
+        }
+
+        .step-label {
+            font-size: 0.7rem;
+        }
+
+        .step-divider {
+            width: 20px;
+            margin: 0 2px;
+        }
+    }
+</style>

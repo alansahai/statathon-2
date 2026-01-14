@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Pipeline Processing | StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <div id="navbar-container"></div>
+
+    <!-- Breadcrumb Navigation -->
+    <div id="breadcrumb-nav"></div>
+
+    <div class="pipeline-container">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1>🚀 Full Pipeline Processing</h1>
+            <p class="subtitle">Upload your data and let StatFlow handle the entire analytics pipeline automatically</p>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="card mb-6">
+            <h2 class="mb-4">📁 Upload Dataset</h2>
+
+            <div class="file-dropzone" id="fileDropzone">
+                <div class="dropzone-content">
+                    <div class="dropzone-icon">📤</div>
+                    <h3>Drag & Drop your CSV file here</h3>
+                    <p>or</p>
+                    <button class="btn btn-primary" id="chooseFileBtn">Choose File</button>
+                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                    <p class="dropzone-hint">Maximum file size: 100MB</p>
+                </div>
+                <div class="dropzone-file-info" id="fileInfo" style="display: none;">
+                    <span class="file-name" id="fileName"></span>
+                    <span class="file-size" id="fileSize"></span>
+                    <button class="btn-icon" id="removeFile" title="Remove file">×</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Control Section -->
+        <div class="card mb-6">
+            <!-- WebSocket Connection Status -->
+            <div id="wsConnectionStatus" class="ws-status-indicator" title="WebSocket Status"></div>
+
+            <div class="card-header-actions">
+                <h2>⚙️ Pipeline Control</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="startPipelineBtn" disabled>
+                        <span class="btn-icon">▶️</span>
+                        Start Pipeline
+                    </button>
+                    <button class="btn btn-secondary" id="resetPipelineBtn">
+                        <span class="btn-icon">🔄</span>
+                        Reset
+                    </button>
+                    <button class="btn btn-success" id="downloadReportBtn" disabled>
+                        <span class="btn-icon">📥</span>
+                        Download Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Progress Bar -->
+            <div class="main-progress-section">
+                <div class="progress-label">
+                    <span>Overall Progress</span>
+                    <span class="progress-percentage" id="overallProgress">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Pipeline Steps -->
+            <div class="pipeline-steps">
+                <div class="pipeline-step" data-step="upload">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Upload File</h4>
+                        <p>Upload and validate dataset</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-step" data-step="schema">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Schema Detection</h4>
+                        <p>Auto-detect data types and structure</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-step" data-step="cleaning">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Data Cleaning</h4>
+                        <p>Handle missing values and outliers</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-step" data-step="weighting">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Weighting</h4>
+                        <p>Calculate statistical weights</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-step" data-step="analysis">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Analysis</h4>
+                        <p>Descriptive statistics and patterns</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-step" data-step="insights">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>Insights</h4>
+                        <p>AI-powered insights generation</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-step" data-step="report">
+                    <div class="step-number">7</div>
+                    <div class="step-content">
+                        <h4>Report Generation</h4>
+                        <p>Create comprehensive PDF report</p>
+                        <span class="step-status" data-status="pending">Pending</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Logs Console -->
+        <div class="card mb-6">
+            <div class="card-header-collapsible" id="logsHeader">
+                <h2>📋 Pipeline Logs</h2>
+                <button class="btn-icon toggle-icon" id="toggleLogs">▼</button>
+            </div>
+            <div class="logs-content" id="logsContent">
+                <div class="pipeline-log-console" id="pipelineLogConsole">
+                    <div class="log-entry log-info">
+                        <span class="log-timestamp">[00:00:00]</span>
+                        <span class="log-message">Pipeline system ready. Upload a file to begin.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time WebSocket Logs -->
+        <div class="card mb-6">
+            <h2 class="mb-4">📡 Real-Time Updates</h2>
+            <div id="wsLiveLogs" class="pipeline-log ws-log-live-container">
+                <div class="log-entry log-info">
+                    <span class="log-timestamp">[--:--:--]</span>
+                    <span class="log-message">Waiting for WebSocket connection...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Summary -->
+        <div class="card">
+            <h2 class="mb-4">📊 Pipeline Summary</h2>
+            <div class="summary-grid" id="pipelineSummary">
+                <div class="summary-item">
+                    <span class="summary-label">File ID:</span>
+                    <span class="summary-value" id="summaryFileId">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Original Filename:</span>
+                    <span class="summary-value" id="summaryFileName">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">File Size:</span>
+                    <span class="summary-value" id="summaryFileSize">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Upload Time:</span>
+                    <span class="summary-value" id="summaryUploadTime">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Pipeline Started:</span>
+                    <span class="summary-value" id="summaryStartTime">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Pipeline Completed:</span>
+                    <span class="summary-value" id="summaryEndTime">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Total Duration:</span>
+                    <span class="summary-value" id="summaryDuration">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Status:</span>
+                    <span class="summary-value" id="summaryStatus">Not Started</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loadingText">Processing...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/api.js"></script>
+    <script src="assets/ui_helpers.js"></script>
+    <script src="assets/workflow.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Load navbar
+            await UIHelper.loadNavbar();
+
+            // Initialize pipeline
+            if (window.PipelineService) {
+                PipelineService.init();
+            }
+
+            console.log('✅ Pipeline page loaded');
+        });
+    </script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        (async () => {
+            await UIHelper.insertAssistantComponent();
+            if (window.Assistant) Assistant.init();
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure Schema - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .schema-container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .hero-schema {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), #2c6ba8);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-schema h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-schema p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .datatype-guide {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .datatype-guide h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .datatype-item {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .datatype-icon {
+            font-size: 1.5rem;
+            min-width: 30px;
+        }
+
+        .datatype-info strong {
+            color: var(--primary-color);
+        }
+
+        .datatype-info small {
+            color: var(--text-muted);
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .column-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .column-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .column-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .column-name {
+            flex: 1;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .column-dropdown {
+            flex: 1;
+        }
+
+        .column-dropdown select {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .column-dropdown select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .column-description {
+            background: #e8f4fd;
+            padding: 0.75rem;
+            border-radius: 5px;
+            font-size: 0.95rem;
+            color: var(--text-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 0.5rem;
+            position: relative;
+        }
+
+        .tooltip-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            width: 250px;
+            z-index: 1;
+            transition: opacity 0.3s;
+            white-space: normal;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(26, 84, 144, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <div class="schema-container">
+            <!-- File Info -->
+            <div id="fileInfo" style="margin-bottom: 2rem;"></div>
+
+            <!-- Progress Bar -->
+            <div id="progressBar" style="margin-bottom: 2rem; display: none;">
+                <div class="progress-fill"></div>
+            </div>
+
+            <div class="hero-schema">
+                <h1>🔧 Configure Data Schema</h1>
+                <p>Map each column to the correct data type for accurate analysis</p>
+            </div>
+
+            <div class="datatype-guide">
+                <h3>📚 Data Type Guide</h3>
+                <div class="datatype-item">
+                    <div class="datatype-icon">🔢</div>
+                    <div class="datatype-info">
+                        <strong>Numeric:</strong> Use for age, income, scores, quantities, measurements
+                        <small>Examples: 25, 50000, 3.14, -10</small>
+                    </div>
+                </div>
+                <div class="datatype-item">
+                    <div class="datatype-icon">🏷️</div>
+                    <div class="datatype-info">
+                        <strong>Categorical:</strong> Use for gender, region, category groups, labels
+                        <small>Examples: Male/Female, North/South/East/West, Yes/No</small>
+                    </div>
+                </div>
+                <div class="datatype-item">
+                    <div class="datatype-icon">📅</div>
+                    <div class="datatype-info">
+                        <strong>Date/Time:</strong> Use for dates, timestamps, date ranges
+                        <small>Examples: 2025-01-07, 14:30:00, 01/07/2025</small>
+                    </div>
+                </div>
+                <div class="datatype-item">
+                    <div class="datatype-icon">📝</div>
+                    <div class="datatype-info">
+                        <strong>Text:</strong> Use for freeform responses, comments, descriptions
+                        <small>Examples: Survey responses, feedback, notes</small>
+                    </div>
+                </div>
+            </div>
+
+            <section class="card">
+                <h2>
+                    Column Mapping
+                    <span class="tooltip-icon">i
+                        <span class="tooltip-text">Select the appropriate data type for each column. This helps the
+                            system perform correct calculations and analysis.</span>
+                    </span>
+                </h2>
+
+                <div id="loadingArea" class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading columns...</p>
+                </div>
+
+                <div id="columnMapping" style="display: none;"></div>
+
+                <div id="actionArea" style="display: none;">
+                    <div class="action-buttons">
+                        <button id="saveMappingBtn" class="btn btn-primary">
+                            💾 Save Mapping
+                            <span class="tooltip-icon">i
+                                <span class="tooltip-text">Save your column type selections without applying them
+                                    yet</span>
+                            </span>
+                        </button>
+                        <button id="applyMappingBtn" class="btn btn-success">
+                            ✓ Apply & Continue
+                            <span class="tooltip-icon">i
+                                <span class="tooltip-text">Apply the data types and proceed to data cleaning</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="statusMessage" style="margin-top: 1rem;"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="assets/api.js"></script>
+    <script src="assets/app.js"></script>
+    <script src="assets/workflow.js"></script>
+    <script src="assets/schema.js"></script>
+    <!-- Inline script disabled - now using schema.js -->
+    <script>
+        /*
+        const API_BASE = "http://localhost:8000/api/v1";
+        let currentFileId = null;
+
+        // Get file_id from URL parameter (changed from 'file_id' to 'file')
+        const urlParams = new URLSearchParams(window.location.search);
+        currentFileId = urlParams.get('file');
+
+        // If no file_id in URL, show error
+        if (!currentFileId) {
+            document.getElementById('loadingArea').innerHTML = `
+                <p class="error">❌ No file ID found. Please <a href="index.html">upload a file</a> first.</p>
+            `;
+        } else {
+            // Automatically run schema detection
+            runAutoSchema();
+        }
+
+        async function runAutoSchema() {
+            console.log('Running auto-schema for file_id:', currentFileId);
+
+            try {
+                // Show loading
+                document.getElementById('loadingArea').style.display = 'block';
+                document.getElementById('loadingArea').innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Auto-detecting schema...</p>
+                `;
+
+                // Call auto-schema endpoint
+                const res = await fetch(`${API_BASE}/schema/auto/${currentFileId}`, {
+                    method: "POST"
+                });
+
+                const data = await res.json();
+
+                if (data.status === "success") {
+                    // Hide loading
+                    document.getElementById('loadingArea').style.display = 'none';
+
+                    // Show success message with mapping summary
+                    document.getElementById('columnMapping').style.display = 'block';
+                    document.getElementById('columnMapping').innerHTML = `
+                        <div class="card" style="background: #d4edda; border-color: #c3e6cb; padding: 2rem; text-align: center;">
+                            <h2 style="color: #155724; margin-bottom: 1rem;">✓ Schema Detected Successfully!</h2>
+                            <p style="color: #155724; font-size: 1.1rem; margin-bottom: 1.5rem;">
+                                Auto-mapped <strong>${data.columns_mapped || 0}</strong> columns
+                            </p>
+                            ${data.mapping_summary ? `
+                                <div style="background: white; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+                                    <h3 style="color: #155724; margin-bottom: 1rem;">Mapping Summary:</h3>
+                                    <div style="text-align: left; max-width: 500px; margin: 0 auto;">
+                                        ${Object.entries(data.mapping_summary).map(([type, cols]) => `
+                                            <p style="padding: 0.5rem; background: #f8f9fa; margin: 0.5rem 0; border-radius: 5px;">
+                                                <strong>${getTypeIcon(type)} ${type}:</strong> ${cols.length} columns
+                                            </p>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            <p style="color: #155724; margin-top: 1rem;">Redirecting to data cleaning...</p>
+                        </div>
+                    `;
+
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = `cleaning.html?file=${currentFileId}`;
+                    }, 2000);
+
+                } else {
+                    throw new Error(data.message || 'Schema detection failed');
+                }
+
+            } catch (error) {
+                console.error('Auto-schema error:', error);
+                document.getElementById('loadingArea').innerHTML = `
+                    <p class="error">❌ Schema detection failed: ${error.message}</p>
+                    <button onclick="window.location.href='index.html'" class="btn btn-primary" style="margin-top: 1rem;">
+                        ← Back to Upload
+                    </button>
+                `;
+            }
+        }
+
+        // Helper function to get type icon
+        function getTypeIcon(type) {
+            const icons = {
+                'numeric': '🔢',
+                'categorical': '🏷️',
+                'datetime': '📅',
+                'text': '📝'
+            };
+            return icons[type] || '📊';
+        }
+        */
+    </script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        // Commented out - UIHelper not needed for schema page
+        /*
+        (async () => {
+            await UIHelper.insertAssistantComponent();
+            if (window.Assistant) Assistant.init();
+        })();
+        */
+    </script>
+</body>
+
+</html>

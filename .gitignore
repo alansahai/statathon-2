@@ -1,0 +1,108 @@
+# ========================
+# PYTHON IGNORE RULES
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.log
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# ========================
+# FASTAPI / UVICORN
+# ========================
+# Uvicorn reload artifacts
+*.pid
+
+# ========================
+# TEMP & AUTO-GENERATED FILES
+# ========================
+
+# Uploaded input files
+backend/temp_uploads/uploads/
+backend/temp_uploads/cleaned/
+backend/temp_uploads/processed/
+backend/temp_uploads/weighted/
+backend/temp_uploads/reports/
+backend/temp_uploads/temp/
+backend/.env
+
+# Generated PDFs, images, and charts
+backend/temp_uploads/**/*.pdf
+backend/temp_uploads/**/*.png
+backend/temp_uploads/**/*.jpg
+backend/temp_uploads/**/*.jpeg
+
+# Generated analysis output
+backend/temp_uploads/**/*.json
+backend/temp_uploads/**/*.csv
+
+# ========================
+# TEST & REPORT FILES
+# ========================
+backend/backend_test_report.json
+backend/tests/
+backend/test_runner.py
+backend/test_generate_pdf_report.py
+backend/verify_config.py
+
+# Test outputs
+test_output/
+*.test.json
+*.md
+backend/*.md
+
+
+# ========================
+# FRONTEND / UI
+# ========================
+
+# No need to ignore html/css/js unless auto-built
+# But ignore generated build folders if introduced in future
+
+ui/node_modules/
+ui/dist/
+ui/build/
+ui/.cache/
+
+# ========================
+# IDE / EDITOR FILES
+# ========================
+
+# VS Code
+.vscode/
+.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+
+# ========================
+# OPERATING SYSTEM FILES
+# ========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Linux
+*~
+
+# ========================
+# GIT METADATA WARNING
+# ========================
+# Never include Git internals in exports
+.git/

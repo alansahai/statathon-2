@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .hero-dashboard {
+            text-align: center;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .hero-dashboard h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-600), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-dashboard .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .recent-files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            background: var(--hover-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: var(--gray-200);
+            transform: translateX(4px);
+            border-color: var(--accent);
+        }
+
+        body.dark-mode .file-item:hover {
+            background: var(--gray-700);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.35rem;
+            font-size: 0.95rem;
+        }
+
+        .file-id {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .file-timestamp {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .badge {
+            padding: 0.35rem 0.875rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-uploaded {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .badge-schema {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-cleaned {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-weighted {
+            background: #e9d5ff;
+            color: #6b21a8;
+        }
+
+        .badge-analysis {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-forecast {
+            background: #ccfbf1;
+            color: #115e59;
+        }
+
+        .badge-ml {
+            background: #fce7f3;
+            color: #9f1239;
+        }
+
+        .badge-report {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        body.dark-mode .badge-uploaded {
+            background: #374151;
+            color: #e5e7eb;
+        }
+
+        body.dark-mode .badge-schema {
+            background: #1e3a8a;
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .badge-cleaned {
+            background: #78350f;
+            color: #fef3c7;
+        }
+
+        body.dark-mode .badge-weighted {
+            background: #581c87;
+            color: #e9d5ff;
+        }
+
+        body.dark-mode .badge-analysis {
+            background: #064e3b;
+            color: #d1fae5;
+        }
+
+        body.dark-mode .badge-forecast {
+            background: #134e4a;
+            color: #ccfbf1;
+        }
+
+        body.dark-mode .badge-ml {
+            background: #881337;
+            color: #fce7f3;
+        }
+
+        body.dark-mode .badge-report {
+            background: #713f12;
+            color: #fef9c3;
+        }
+
+        .progress-widget {
+            margin: 2rem 0;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: var(--gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        body.dark-mode .progress-bar-container {
+            background: var(--gray-700);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            border-radius: var(--radius-full);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1rem;
+            gap: 0.75rem;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--text);
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            background: var(--hover-bg);
+        }
+
+        .action-icon {
+            font-size: 2.5rem;
+        }
+
+        .action-label {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .mini-charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .mini-chart {
+            background: var(--hover-bg);
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .mini-chart:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+        }
+
+        .mini-chart-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mini-chart-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        .mini-chart-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            margin: 0.5rem 0;
+        }
+
+        .empty-state .btn {
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .mini-charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mini-charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+
+            .hero-dashboard h1 {
+                font-size: 2rem;
+            }
+
+            .file-item {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="dashboard-container">
+        <!-- Hero Section -->
+        <div class="hero-dashboard">
+            <h1>📊 StatFlow Dashboard</h1>
+            <p class="subtitle">Your comprehensive analytics pipeline overview</p>
+        </div>
+
+        <!-- Overview Stats -->
+        <div class="dashboard-grid" id="overview-stats">
+            <!-- Stats will be loaded here -->
+        </div>
+
+        <!-- Pipeline Progress -->
+        <div class="card progress-widget">
+            <h2>🔄 Pipeline Progress</h2>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="pipeline-progress-fill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progress-label">Not started</span>
+                <span id="progress-percentage">0%</span>
+            </div>
+        </div>
+
+        <!-- Recent Files -->
+        <div class="card mb-6">
+            <h2 class="mb-4">📁 Recent Files</h2>
+            <div class="recent-files-list" id="recent-files-list">
+                <!-- Files will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Quick Insights -->
+        <div class="card mb-6">
+            <h2 class="mb-4">💡 Quick Insights</h2>
+            <div class="mini-charts-grid" id="quick-charts">
+                <!-- Mini charts will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <h2 class="mb-4">⚡ Quick Actions</h2>
+            <div class="quick-actions-grid">
+                <a href="index.html" class="action-btn">
+                    <span class="action-icon">📤</span>
+                    <span class="action-label">Upload New File</span>
+                </a>
+                <a href="schema.html" class="action-btn" id="continueSchemaBtn">
+                    <span class="action-icon">🗂️</span>
+                    <span class="action-label">Configure Schema</span>
+                </a>
+                <a href="analysis.html" class="action-btn" id="continueAnalysisBtn">
+                    <span class="action-icon">📈</span>
+                    <span class="action-label">View Analysis</span>
+                </a>
+                <a href="report.html" class="action-btn" id="continueReportBtn">
+                    <span class="action-icon">📄</span>
+                    <span class="action-label">Generate Report</span>
+                </a>
+                <button class="action-btn" onclick="DashboardService.restartPipeline()">
+                    <span class="action-icon">🔄</span>
+                    <span class="action-label">Restart Pipeline</span>
+                </button>
+                <button class="action-btn" onclick="DashboardService.downloadAllOutputs()">
+                    <span class="action-icon">💾</span>
+                    <span class="action-label">Download All</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/pipeline.js"></script>
+    <script src="assets/charts.js"></script>
+    <script src="assets/dashboard.js"></script>
+</body>
+
+</html>

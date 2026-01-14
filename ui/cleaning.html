@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Cleaning - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .cleaning-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+        }
+
+        .hero-cleaning {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-cleaning h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-cleaning p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .info-section h3 {
+            color: var(--success-color);
+            margin-bottom: 1rem;
+        }
+
+        .process-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .process-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .process-item h4 {
+            color: var(--success-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .process-item p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .issues-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .issues-table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .issues-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .issues-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .issue-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .issue-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .issue-badge.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .issue-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .summary-box h3 {
+            color: var(--success-color);
+            margin-bottom: 1rem;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 0.5rem;
+            position: relative;
+        }
+
+        .tooltip-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            width: 280px;
+            z-index: 1;
+            transition: opacity 0.3s;
+            white-space: normal;
+            text-align: left;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <div class="cleaning-container">
+            <!-- File Info -->
+            <div id="fileInfo" style="margin-bottom: 2rem;"></div>
+
+            <!-- Progress Bar -->
+            <div id="progressBar" style="margin-bottom: 2rem; display: none;">
+                <div class="progress-fill"></div>
+            </div>
+
+            <div class="hero-cleaning">
+                <h1>🧹 Data Cleaning</h1>
+                <p>Detect and fix data quality issues automatically</p>
+            </div>
+
+            <div class="info-section">
+                <h3>📋 What This Step Does</h3>
+                <p>Data cleaning ensures your dataset is accurate and ready for analysis by addressing common quality
+                    issues.</p>
+
+                <div class="process-list">
+                    <div class="process-item">
+                        <h4>🔍 Missing Value Detection</h4>
+                        <p>Identifies cells with no data and automatically fills them using statistical methods (mean,
+                            median, or mode)</p>
+                    </div>
+                    <div class="process-item">
+                        <h4>📊 Outlier Detection</h4>
+                        <p>Finds extreme values that may be errors using IQR (Interquartile Range) or Z-score methods
+                        </p>
+                    </div>
+                    <div class="process-item">
+                        <h4>✨ Data Imputation</h4>
+                        <p>Intelligently fills missing values based on column type and data distribution</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cleaning Mode Toggle -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h2>🎯 Select Cleaning Mode</h2>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button id="autoModeBtn" class="btn btn-primary active" style="flex: 1; padding: 1rem;">
+                        ⚡ Automatic Cleaning
+                    </button>
+                    <button id="manualModeBtn" class="btn btn-secondary" style="flex: 1; padding: 1rem;">
+                        🛠️ Manual Cleaning
+                    </button>
+                </div>
+            </div>
+
+            <!-- Auto Cleaning Section -->
+            <section id="autoCleaningSection" class="card" style="display: block;">
+                <h2>
+                    ⚡ Automatic Cleaning
+                    <span class="tooltip-icon">i
+                        <span class="tooltip-text">Automatically detect and fix all data quality issues with one
+                            click</span>
+                    </span>
+                </h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Our AI-powered cleaning engine automatically detects and fixes missing values, outliers, and data
+                    inconsistencies.
+                </p>
+
+                <button id="autoCleanBtn" class="btn btn-success btn-large">
+                    ✨ Run Auto Cleaning
+                </button>
+
+                <div id="cleaningStatus" style="margin-top: 1rem;"></div>
+                <div id="cleaningResults" style="margin-top: 1rem;"></div>
+            </section>
+
+            <!-- Manual Cleaning Section -->
+            <section id="manualCleaningSection" class="card" style="display: none;">
+                <h2>
+                    🛠️ Manual Cleaning
+                    <span class="tooltip-icon">i
+                        <span class="tooltip-text">Review detected issues and choose which fixes to apply</span>
+                    </span>
+                </h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Detect issues first, review them, then apply selective cleaning rules.
+                </p>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <button id="detectIssuesBtn" class="btn btn-primary btn-large">
+                        🔍 Detect Issues
+                    </button>
+                </div>
+
+                <div id="detectionStatus" style="margin-top: 1rem;"></div>
+                <div id="detectionResults" style="margin-top: 1rem;"></div>
+            </section>
+
+            <div id="statusMessage"></div>
+        </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/workflow.js"></script>
+    <script src="assets/ui_helpers.js"></script>
+    <script src="assets/cleaning.js"></script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        (async () => {
+            await UIHelper.insertAssistantComponent();
+            if (window.Assistant) Assistant.init();
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Series Forecasting - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div data-include="components/navbar.html"></div>
+    <div data-include="components/steps.html"></div>
+    <div id="progress-timeline"></div>
+    <div id="breadcrumb-nav"></div>
+
+    <div class="container">
+        <div class="hero text-center mb-6"
+            style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 2rem; border-radius: 12px;">
+            <h1>🔮 Time Series Forecasting</h1>
+            <p>Predict future trends with ARIMA and Prophet models</p>
+        </div>
+
+        <div id="fileInfoBanner"></div>
+
+        <div class="card">
+            <h2>Forecast Configuration</h2>
+            <div class="form-group mb-4">
+                <label for="timeColumn">Time Column:</label>
+                <select id="timeColumn" class="form-control">
+                    <option value="">Select time column...</option>
+                </select>
+            </div>
+            <div class="form-group mb-4">
+                <label for="targetColumn">Target Variable:</label>
+                <select id="targetColumn" class="form-control">
+                    <option value="">Select target variable...</option>
+                </select>
+            </div>
+            <div class="form-group mb-4">
+                <label for="forecastPeriods">Forecast Periods:</label>
+                <input type="number" id="forecastPeriods" class="form-control" value="30" min="1" max="365">
+            </div>
+            <div class="form-group mb-4">
+                <label for="forecastModel">Model:</label>
+                <select id="forecastModel" class="form-control">
+                    <option value="arima">ARIMA</option>
+                    <option value="prophet">Prophet</option>
+                    <option value="lstm">LSTM Neural Network</option>
+                </select>
+            </div>
+            <button id="runForecastBtn" class="btn btn-primary btn-block">🔮 Generate Forecast</button>
+        </div>
+
+        <div id="forecastResults" class="mt-6" style="display: none;">
+            <div class="card">
+                <h2>Forecast Results</h2>
+                <div style="position: relative; height: 400px; margin-bottom: 2rem;">
+                    <div id="forecastLoading"
+                        style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                        <div
+                            style="width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;">
+                        </div>
+                    </div>
+                    <canvas id="forecastChart"></canvas>
+                </div>
+                <div id="forecastMetrics"></div>
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <button id="backBtn" class="btn btn-secondary">← Previous</button>
+            <button id="continueBtn" class="btn btn-primary">Continue to ML →</button>
+        </div>
+    </div>
+
+    <script src="assets/api.js"></script>
+    <script src="assets/workflow.js"></script>
+    <script src="assets/ui_helpers.js"></script>
+    <script src="assets/forecasting.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const fileId = WorkflowService?.getFileId();
+            if (!fileId) {
+                UIHelper.showErrorBanner('No file ID found');
+                setTimeout(() => window.location.href = 'nlq.html', 2000);
+                return;
+            }
+            UIHelper.renderProgressTimeline?.('forecasting');
+            UIHelper.renderBreadcrumbs?.('forecasting.html');
+            UIHelper.showFileInfo?.(fileId);
+            await ForecastingModule.init(fileId);
+            UIHelper.enableBackButton?.(() => window.location.href = `nlq.html?file_id=${fileId}`);
+            document.getElementById('continueBtn').onclick = () => window.location.href = `ml.html?file_id=${fileId}`;
+        });
+    </script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        (async () => {
+            await UIHelper.insertAssistantComponent();
+            if (window.Assistant) Assistant.init();
+        })();
+    </script>
+</body>
+
+</html>

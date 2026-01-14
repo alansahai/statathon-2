@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Report - StatFlow AI</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        .report-container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .hero-report {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-report h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-report p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .report-info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+        }
+
+        .report-info-box h3 {
+            color: #856404;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .report-info-box ul {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: #856404;
+        }
+
+        .report-info-box li {
+            margin-bottom: 0.5rem;
+        }
+
+        .tech-note {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: #0c5460;
+        }
+
+        .generate-section {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .report-preview {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+
+        .section-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .check-icon {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .download-card {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .download-card h2 {
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .download-btn {
+            background: white;
+            color: #28a745;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar Component -->
+    <div data-include="components/navbar.html"></div>
+
+    <!-- Steps Indicator -->
+    <div data-include="components/steps.html"></div>
+
+    <div class="container">
+        <div class="report-container">
+            <!-- File Info -->
+            <div id="fileInfo" style="margin-bottom: 2rem;"></div>
+
+            <!-- Progress Bar -->
+            <div id="progressBar" style="margin-bottom: 2rem; display: none;">
+                <div class="progress-fill"></div>
+            </div>
+
+            <div class="hero-report">
+                <h1>📄 Generate Comprehensive Report</h1>
+                <p>Export all your analysis results into a professional PDF document</p>
+            </div>
+
+            <div class="report-info-box">
+                <h3>📋 What's Included in Your Report</h3>
+                <ul>
+                    <li><strong>Dataset Metadata:</strong> File information, dimensions, and schema details</li>
+                    <li><strong>Data Cleaning Summary:</strong> Missing values handled, outliers treated, quality scores
+                    </li>
+                    <li><strong>Weighting Analysis:</strong> Applied weights and adjustments (if applicable)</li>
+                    <li><strong>Statistical Analysis:</strong> Descriptive statistics, correlations, and distributions
+                    </li>
+                    <li><strong>Cross-tabulation Results:</strong> Chi-square tests and relationship analysis</li>
+                    <li><strong>Regression Models:</strong> Model coefficients, R², and interpretations</li>
+                    <li><strong>ML Insights:</strong> Machine learning predictions and feature importance</li>
+                    <li><strong>Forecasting Results:</strong> Time series predictions and trends</li>
+                    <li><strong>NLQ Questions & Answers:</strong> Your natural language query history</li>
+                    <li><strong>Recommendations:</strong> AI-generated insights and next steps</li>
+                </ul>
+            </div>
+
+            <div class="tech-note">
+                <strong>🔧 Technical Note:</strong> Your PDF report is automatically generated using ReportLab with
+                professional formatting, embedded charts (matplotlib/seaborn), and statistical tables. The generation
+                process typically takes 10-30 seconds depending on data complexity.
+            </div>
+
+            <!-- File Info -->
+            <div class="file-info"></div>
+
+            <div class="generate-section">
+                <h2>Report Configuration</h2>
+
+                <div class="form-group mb-4">
+                    <label for="reportMode">Report Mode:</label>
+                    <select id="reportMode" class="form-control">
+                        <option value="separate">Separate - Individual report for each file</option>
+                        <option value="combined">Combined - Single report for all files</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label for="reportType">Report Format:</label>
+                    <select id="reportType" class="form-control">
+                        <option value="pdf">PDF Document</option>
+                        <option value="docx">Word Document (DOCX)</option>
+                    </select>
+                </div>
+
+                <h2>Ready to Generate?</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Click the button below to compile all your analysis into a downloadable report
+                </p>
+                <button id="generateBtn" class="generate-btn">
+                    <span>📄 Generate Report</span>
+                </button>
+                <p id="statusMessage" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></p>
+            </div>
+
+            <div id="report-links" class="mt-6"></div>
+
+            <div id="reportPreview" class="report-preview">
+                <div class="download-card">
+                    <div class="success-badge">✓ Report Generated Successfully</div>
+                    <h2>Your Report is Ready!</h2>
+                    <p style="margin-bottom: 1.5rem;">Download your comprehensive analysis report below</p>
+                    <a id="downloadLink" class="download-btn" download>
+                        📥 Download PDF Report
+                    </a>
+                </div>
+
+                <h2 style="margin-bottom: 1rem;">📑 Report Sections</h2>
+                <div class="sections-grid">
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Dataset Info</h3>
+                        <p>File metadata and schema</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Data Quality</h3>
+                        <p>Cleaning and validation results</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Weighting</h3>
+                        <p>Survey weights and adjustments</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Statistics</h3>
+                        <p>Descriptive analysis and distributions</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Cross-tabs</h3>
+                        <p>Chi-square and relationship tests</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Regression</h3>
+                        <p>Model results and coefficients</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> ML Insights</h3>
+                        <p>Predictions and feature importance</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Forecasting</h3>
+                        <p>Time series predictions</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> NLQ Q&A</h3>
+                        <p>Natural language query results</p>
+                    </div>
+                    <div class="section-card">
+                        <h3><span class="check-icon">✓</span> Recommendations</h3>
+                        <p>AI-generated insights</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🎉 What's Next?</h2>
+                    <p style="margin-bottom: 1rem;">Congratulations on completing your analysis! Here are some next
+                        steps:</p>
+                    <ul style="line-height: 1.8;">
+                        <li>📧 Share the PDF report with stakeholders</li>
+                        <li>🔄 Upload a new dataset to start fresh</li>
+                        <li>💬 Ask more questions using Natural Language Query</li>
+                        <li>📊 Run additional analyses on the dashboard</li>
+                    </ul>
+                    <div style="margin-top: 1.5rem;">
+                        <button id="newAnalysisBtn" class="btn btn-primary">
+                            🔄 Start New Analysis
+                        </button>
+                        <button id="backToDashboardBtn" class="btn btn-secondary" style="margin-left: 0.5rem;">
+                            📊 Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/api.js"></script>
+    <script>
+        // Auto-Generate Report on Page Load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check for uploaded file in sessionStorage
+            const fileId = sessionStorage.getItem('uploadedFileId');
+            const uploadedFileName = sessionStorage.getItem('uploadedFileName');
+
+            if (!fileId || !uploadedFileName) {
+                alert('No file uploaded. Please upload a file first.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            console.log('[report.html] Using file:', uploadedFileName, fileId);
+
+            // Call report generation endpoint
+            await generateReport(fileId);
+        });
+
+        async function generateReport(fileId) {
+            try {
+                // Show loading state
+                const statusMessage = document.getElementById('statusMessage');
+                const generateBtn = document.getElementById('generateBtn');
+
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<span class="spinner"></span> Generating Report...';
+                statusMessage.textContent = '📄 Generating comprehensive PDF report... This may take 10-30 seconds.';
+                statusMessage.style.color = 'var(--primary-color)';
+
+                // Call backend API using simplified endpoint
+                const response = await fetch(`${window.API_BASE}/report`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ file_id: fileId })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Report generation failed');
+                }
+
+                // Response is a PDF blob
+                const blob = await response.blob();
+
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'report.pdf';
+
+                statusMessage.textContent = '✓ Report generated successfully!';
+                statusMessage.style.color = '#28a745';
+
+                // Show report preview section
+                const reportPreview = document.getElementById('reportPreview');
+                reportPreview.style.display = 'block';
+                reportPreview.innerHTML = `
+                    <div class="card" style="background: #d4edda; border-left: 4px solid #28a745; padding: 2rem;">
+                        <h3 style="color: #28a745;">✓ Report Generated Successfully!</h3>
+                        <p style="color: #155724; margin: 1rem 0;">Your report is ready for download.</p>
+                        <a href="${url}" download="report.pdf" class="btn btn-primary">📥 Download Report</a>
+                    </div>
+                `;
+
+                // Reset button
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<span>📄 Generate Report</span>';
+
+                // Scroll to preview
+                setTimeout(() => {
+                    reportPreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+
+            } catch (error) {
+                console.error('Report generation error:', error);
+                const statusMessage = document.getElementById('statusMessage');
+                const generateBtn = document.getElementById('generateBtn');
+
+                statusMessage.textContent = `❌ Failed to generate report: ${error.message}`;
+                statusMessage.style.color = '#dc3545';
+
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<span>📄 Generate Report</span>';
+
+                // Show error card
+                document.getElementById('reportPreview').innerHTML = `
+                    <div class="card" style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 2rem;">
+                        <h3 style="color: #dc3545;">❌ Report Generation Failed</h3>
+                        <p style="color: #721c24; margin: 1rem 0;">${error.message}</p>
+                    </div>
+                `;
+                document.getElementById('reportPreview').style.display = 'block';
+            }
+        }
+
+        // Navigation buttons
+        document.getElementById('newAnalysisBtn').addEventListener('click', () => {
+            // Redirect to upload for new analysis
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+            // Redirect to index
+            window.location.href = 'index.html';
+        });
+
+        // Allow manual re-generation
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            const fileId = sessionStorage.getItem('uploadedFileId');
+            if (fileId) {
+                generateReport(fileId);
+            }
+        });
+    </script>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons">
+        <button id="backBtn" class="btn btn-secondary">← Previous Step</button>
+        <button id="continueBtn" class="btn btn-primary">View Dashboard →</button>
+    </div>
+
+    <script src="assets/workflow.js"></script>
+    <script src="assets/ui_helpers.js"></script>
+    <script src="assets/report.js"></script>
+    <script>
+        // Initialize report page
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileId = WorkflowService.getFileId();
+            if (!fileId) {
+                UIHelper.showErrorBanner('No file ID found');
+                setTimeout(() => WorkflowService.goToUpload(), 2000);
+                return;
+            }
+
+            // Render progress timeline and breadcrumbs
+            UIHelper.renderProgressTimeline('report');
+            UIHelper.renderBreadcrumbs('report.html');
+
+            // Initialize report page
+            ReportPage.init();
+
+            // Enable navigation buttons
+            UIHelper.enableBackButton(() => WorkflowService.goToInsight(fileId));
+            UIHelper.enableContinueButton(() => WorkflowService.goToDashboard(fileId));
+        });
+    </script>
+
+    <!-- AI Assistant Integration -->
+    <script src="assets/assistant.js"></script>
+    <script>
+        (async () => {
+            await UIHelper.insertAssistantComponent();
+            if (window.Assistant) Assistant.init();
+        })();
+    </script>
+</body>
+
+</html>
